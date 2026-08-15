@@ -120,7 +120,7 @@ Write 5–6 unit tests against the fictional `demo_debrief_2` in the seed file: 
 
 **POST /api/merge** — body `{ extracted: ExtractedClaim[] }`. No LLM. Applies merge engine to the store, returns `MergeResult` + updated store snapshot.
 
-**POST /api/checklist** — body `{ legs?: Leg[] }`. Sends active (non-superseded) claims + official rules to Claude with CHECKLIST_PROMPT. Validate that every checklist line's `source_ids` exist in the store; drop any line that cites nothing (log it) — this enforces "the model may rephrase, never invent".
+**POST /api/checklist** — body `{ legs?: Leg[] }` (default: the whole corridor; an empty array is a 400). Resolves **each leg independently** (docs/adr/0004): canned fixture → `(store fingerprint, leg)` cache → honest-gap section if the leg has no claims or rules → live Claude call with CHECKLIST_LEG_PROMPT over that leg's slice of the store. Validate that every checklist line's `source_ids` exist in the store; drop any line that cites nothing (log it) — this enforces "the model may rephrase, never invent". The client fans out one request per leg of the operator's Journey Span, so sections render as they land.
 
 **STRETCH POST /api/ask** — body `{ question: string }`. ASK_PROMPT + full active store as context. Response schema `{ answer: string, cited_ids: string[], no_verified_intel: boolean }`. Same citation validation: any sentence without a resolvable citation is replaced by the no-intel fallback.
 
@@ -154,15 +154,16 @@ Rules:
 - No preamble, no markdown fences.
 ```
 
-**CHECKLIST_PROMPT**
+**CHECKLIST_LEG_PROMPT** (was CHECKLIST_PROMPT; became per-leg in docs/adr/0004)
 ```
-You compose a pre-trip checklist for a humanitarian convoy (GB → France →
-Poland → Ukraine) from the provided claim store. The store contains official
-rules and operator-reported claims, each with an id.
+You compose ONE leg's section of a pre-trip checklist for a humanitarian
+convoy (GB → France → Poland → Ukraine). You will be told which leg, and given
+the claim store filtered to that leg: official rules and operator-reported
+claims, each with an id.
 
-Output ONLY JSON: { "legs": [ { "leg": string, "title": string, "items":
+Output ONLY JSON: { "leg": string, "title": string, "items":
 [ { "text": string, "type": "do"|"carry"|"instruct"|"verify",
-"source_ids": string[] } ] } ] }
+"source_ids": string[] } ] }
 
 Rules:
 - Every item MUST cite at least one source_id from the store. You may rephrase
@@ -205,14 +206,14 @@ Heading, one textarea (12 rows, placeholder: "Tell us about the trip — which c
 Four leg sections in journey order. Claim cards: claim text, status tag, freshness dot + last-verified date, source-class line, expandable detail (entities, verbatim quote, notes, supersession history). Conflicting pairs render side-by-side in a red-bordered container titled "Conflicting reports — verify before travel". A "Known gaps" callout lists claims whose entities include "VERIFY".
 
 **Screen 3 — Pre-trip checklist (`/checklist`)**
-"Generate checklist" button → renders legs as checklists, each item with its type badge and citation chips (click → jumps to that claim on /brief). Print stylesheet (`@media print`: hide nav/buttons). Footer disclaimer: "Navigation aid, not legal advice. Verify conflicting and stale items before travel."
+"Starting from" / "Destination" selectors declare the operator's Journey Span (default United Kingdom → Ukraine); the selected legs are derived in `lib/journey-span.ts` and Poland → Poland is disabled because it covers none. "Generate checklist" fans out one request per leg, each section rendering as it lands, with its own error + "Retry this leg" on failure. Items carry a type badge and citation chips (click → jumps to that claim on /brief). Print stylesheet (`@media print`: hide nav/buttons). Footer disclaimer: "Navigation aid, not legal advice. Verify conflicting and stale items before travel."
 
 **STRETCH Screen 4 — Ask the corridor (`/ask`)**
 Single input + three suggested-question chips (hardcoded): "Which Polish crossing should we use?", "Does the T1 need every item listed?", "Can we take donated medicines?". Render answer with citation chips; `no_verified_intel` answers styled distinctly (amber panel) — this is a feature, style it proudly, not as an error state.
 
 ## Demo reliability (do not skip)
 
-- `data/canned/` holds pre-computed JSON responses for: extraction of `demo_debrief_2.raw_text`, the default checklist, and the three /ask questions. Routes check input against known demo inputs first and serve canned responses instantly — the live LLM path is for unrehearsed inputs only.
+- `data/canned/` holds pre-computed JSON responses for: extraction of `demo_debrief_2.raw_text`, the checklist, and the three /ask questions. Routes check input against known demo inputs first and serve canned responses instantly — the live LLM path is for unrehearsed inputs only. The checklist fixture is looked up **per leg**, so every Journey Span — including one-leg spans like Poland → Ukraine — serves from the frozen fixture, not just the full corridor.
 - "Reset demo" restores seed state so the merge demo can be run repeatedly.
 - `npm run demo-check` script: hits all routes with demo inputs, asserts non-error + schema-valid responses. Run before every rehearsal.
 

@@ -8,12 +8,13 @@
 // Every truth decision still lives in the pure merge engine (lib/merge.ts);
 // backends only load and persist what it returns.
 import type { AskResponse } from "./ask";
+import type { ChecklistLeg } from "./checklist";
 import type { StoreState } from "./seed";
 import type { MergeRunResult, StoreBackend } from "./store-backend";
 import { memoryBackend } from "./store-memory";
 import { createSupabaseBackend } from "./store-supabase";
 import { hasSupabaseEnv } from "./supabase-env";
-import type { ExtractedClaim, MergeResult, OperatorClaim } from "./types";
+import type { ExtractedClaim, Leg, MergeResult, OperatorClaim } from "./types";
 
 export type { StoreState } from "./seed";
 export type { MergeRunResult } from "./store-backend";
@@ -53,6 +54,21 @@ export function runMerge(extracted: ExtractedClaim[]): Promise<MergeRunResult> {
 
 export function reset(): Promise<void> {
   return backend.reset();
+}
+
+export function getChecklistLeg(
+  fingerprint: string,
+  leg: Leg,
+): Promise<ChecklistLeg | null> {
+  return backend.getChecklistLeg(fingerprint, leg);
+}
+
+export function putChecklistLeg(
+  fingerprint: string,
+  leg: Leg,
+  section: ChecklistLeg,
+): Promise<void> {
+  return backend.putChecklistLeg(fingerprint, leg, section);
 }
 
 export function logDebrief(

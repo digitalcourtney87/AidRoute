@@ -2,12 +2,22 @@
 // docs/adr/0002). Behaviour is identical to the original synchronous store:
 // mutations live for the server process only; reset() restores the seed.
 // Single-process means no merge races, so runMerge needs no retry here.
+import type { ChecklistLeg } from "./checklist";
 import { mergeClaims } from "./merge";
 import { loadSeed, type StoreState } from "./seed";
 import type { MergeRunResult, StoreBackend } from "./store-backend";
-import type { ExtractedClaim, OperatorClaim } from "./types";
+import type { ExtractedClaim, Leg, OperatorClaim } from "./types";
 
 let state: StoreState = loadSeed();
+
+// Fingerprint-keyed cache of generated checklist sections. Keying makes
+// invalidation automatic (any merge changes the fingerprint); reset() clears
+// it anyway so a restored seed store always starts pristine.
+const checklistCache = new Map<string, ChecklistLeg>();
+
+function cacheKey(fingerprint: string, leg: Leg): string {
+  return `${fingerprint}::${leg}`;
+}
 
 function getClaimSync(id: string): OperatorClaim | undefined {
   return state.claims.find((c) => c.id === id);
@@ -50,6 +60,22 @@ export const memoryBackend: StoreBackend = {
 
   async reset(): Promise<void> {
     state = loadSeed();
+    checklistCache.clear();
+  },
+
+  async getChecklistLeg(
+    fingerprint: string,
+    leg: Leg,
+  ): Promise<ChecklistLeg | null> {
+    return checklistCache.get(cacheKey(fingerprint, leg)) ?? null;
+  },
+
+  async putChecklistLeg(
+    fingerprint: string,
+    leg: Leg,
+    section: ChecklistLeg,
+  ): Promise<void> {
+    checklistCache.set(cacheKey(fingerprint, leg), section);
   },
 
   // No persistence, no trail.
