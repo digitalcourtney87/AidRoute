@@ -15,12 +15,12 @@ Convoy operators moving humanitarian aid (GB → France → Poland → Ukraine) 
 
 ## Design language
 
-GOV.UK-inspired, not GOV.UK-branded (do not use the crown or GDS Transport font): white background, near-black text (#0b0c0c), primary action blue #1d70b8, Inter via next/font, generous whitespace, semantic HTML, visible focus states, WCAG AA contrast. Status tags as GDS-style rectangular tags:
-- CORROBORATED → green tint
-- SINGLE REPORT → blue tint
-- CONFLICTING → red tint
-- SUPERSEDED → grey, struck-through summary, collapsed by default
-- Freshness: last_verified ≤30 days = green dot; 31–90 = amber dot + "treat as unconfirmed"; >90 = red dot + "stale".
+Night convoy — see [DESIGN.md](../DESIGN.md). Slate chrome `#161d1a`, cream paper work surface `#f3eee4`, ink `#1c1917`, amber action `#d97706` with ink labels, teal links `#1a5c54`. Source Serif 4 for wordmark and h1, IBM Plex Sans for UI. No GOV.UK header bar, no GDS palette, no 2px button shadow, no yellow-black focus ring. Semantic HTML, visible focus, WCAG AA. Status tags are product language (not GDS components):
+- CORROBORATED → teal tint
+- SINGLE REPORT → dusk tint
+- CONFLICTING → oxide tint
+- SUPERSEDED → stone, struck-through summary, collapsed by default
+- Freshness: last_verified ≤30 days = teal dot; 31–90 = amber dot + "treat as unconfirmed"; >90 = oxide dot + "stale".
 - Source class rendered on every line: `Official — HMRC, checked 14 Aug 2026` or `Operator-reported — 2 reports, last verified Aug 2026`.
 
 ## Data model (mirror seed-data.json exactly)

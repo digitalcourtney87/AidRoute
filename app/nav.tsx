@@ -21,8 +21,8 @@ export function Nav() {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`border-b-2 pb-0.5 text-white underline-offset-4 hover:underline ${
-              active ? "border-white font-bold" : "border-transparent"
+            className={`pb-0.5 text-cream underline-offset-4 hover:text-action hover:underline ${
+              active ? "border-b-2 border-action font-bold text-action" : ""
             }`}
           >
             {item.label}

@@ -13,12 +13,13 @@ import {
 import { readApiJson } from "@/lib/read-api-json";
 import type { ChecklistItemType, ChecklistLeg } from "@/lib/checklist";
 import type { Leg } from "@/lib/types";
+import { btnPrimary, btnSecondary, field, noticeError, noticeWarn, sourceChip, tag } from "../ui";
 
 const TYPE_BADGES: Record<ChecklistItemType, string> = {
-  do: "bg-tint-green text-tint-green-ink",
-  carry: "bg-tint-blue text-tint-blue-ink",
-  instruct: "bg-ink text-white",
-  verify: "bg-tint-amber text-tint-amber-ink",
+  do: `${tag} bg-tint-teal text-tint-teal-ink`,
+  carry: `${tag} bg-tint-dusk text-tint-dusk-ink`,
+  instruct: `${tag} bg-slate text-cream`,
+  verify: `${tag} bg-tint-amber text-tint-amber-ink`,
 };
 
 // One leg's fetch state. Sections are generated per-leg and in parallel, so
@@ -99,7 +100,7 @@ export default function ChecklistPage() {
               onChange={(e) =>
                 changeSpan({ start: e.target.value as StartPoint })
               }
-              className="border-2 border-ink bg-white px-3 py-2"
+              className={field}
             >
               {START_POINTS.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -116,7 +117,7 @@ export default function ChecklistPage() {
               onChange={(e) =>
                 changeSpan({ destination: e.target.value as Destination })
               }
-              className="border-2 border-ink bg-white px-3 py-2"
+              className={field}
             >
               {DESTINATIONS.map((d) => (
                 <option
@@ -134,7 +135,7 @@ export default function ChecklistPage() {
         </div>
 
         {invalidSpan ? (
-          <p className="max-w-prose border-l-4 border-l-tint-amber-ink bg-tint-amber/40 p-3 text-sm">
+          <p className={`${noticeWarn} text-sm`}>
             That start and destination cover no legs of the corridor. Choose a
             destination further along the route.
           </p>
@@ -148,7 +149,7 @@ export default function ChecklistPage() {
         <button
           onClick={generate}
           disabled={busy || invalidSpan}
-          className="bg-action px-5 py-2 font-bold text-white shadow-[0_2px_0_#003078] hover:bg-[#003078] disabled:opacity-50"
+          className={btnPrimary}
         >
           {busy ? "Generating checklist…" : "Generate checklist"}
         </button>
@@ -158,7 +159,7 @@ export default function ChecklistPage() {
         <div className="max-w-2xl space-y-8">
           <button
             onClick={() => window.print()}
-            className="border-2 border-ink bg-white px-4 py-1.5 text-sm font-bold hover:bg-tint-grey print:hidden"
+            className={`${btnSecondary} print:hidden`}
           >
             Print checklist
           </button>
@@ -167,7 +168,7 @@ export default function ChecklistPage() {
             const state = legStates[leg];
             return (
               <section key={leg}>
-                <h2 className="border-b-2 border-ink pb-1 text-2xl font-bold">
+                <h2 className="border-b border-tint-stone pb-1 font-serif text-2xl font-bold">
                   {state?.status === "done"
                     ? state.section.title || LEG_TITLES[leg]
                     : LEG_TITLES[leg]}
@@ -178,11 +179,11 @@ export default function ChecklistPage() {
                 )}
 
                 {state?.status === "error" && (
-                  <div className="mt-3 border-l-4 border-l-tint-red-ink bg-tint-red/40 p-4 print:hidden">
+                  <div className={`mt-3 ${noticeError} print:hidden`}>
                     <p>{state.message}</p>
                     <button
                       onClick={() => void loadLeg(leg)}
-                      className="mt-2 border-2 border-ink bg-white px-3 py-1 text-sm font-bold hover:bg-tint-grey"
+                      className={`${btnSecondary} mt-2`}
                     >
                       Retry this leg
                     </button>
@@ -190,7 +191,7 @@ export default function ChecklistPage() {
                 )}
 
                 {state?.status === "done" && state.section.gap && (
-                  <p className="mt-3 border-l-4 border-l-tint-grey bg-tint-grey/40 p-4">
+                  <p className={`mt-3 ${noticeWarn}`}>
                     No verified intel for this leg yet. Nothing here is a
                     guess — debrief after your trip to fill the gap.
                   </p>
@@ -207,7 +208,7 @@ export default function ChecklistPage() {
                         />
                         <div className="peer-checked:opacity-60 peer-checked:[&>span:nth-child(2)]:line-through">
                           <span
-                            className={`mr-2 inline-block px-1.5 py-0.5 align-middle text-[11px] font-bold uppercase tracking-wide ${TYPE_BADGES[item.type]}`}
+                            className={`mr-2 inline-block align-middle text-[11px] uppercase ${TYPE_BADGES[item.type]}`}
                           >
                             {item.type}
                           </span>
@@ -217,7 +218,7 @@ export default function ChecklistPage() {
                               <Link
                                 key={id}
                                 href={`/brief#${id}`}
-                                className="border border-action px-1.5 text-xs text-action hover:bg-tint-blue print:border-muted print:text-muted"
+                                className={sourceChip}
                               >
                                 {id}
                               </Link>
@@ -234,7 +235,7 @@ export default function ChecklistPage() {
         </div>
       )}
 
-      <footer className="max-w-prose border-t border-tint-grey pt-3 text-sm text-muted">
+      <footer className="max-w-prose border-t border-tint-stone pt-3 text-sm text-muted">
         Navigation aid, not legal advice. Verify conflicting and stale items
         before travel.
       </footer>

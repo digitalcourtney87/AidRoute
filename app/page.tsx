@@ -6,6 +6,7 @@ import { appendTranscript } from "@/lib/dictation";
 import { readApiJson } from "@/lib/read-api-json";
 import type { MergeLogEntry, OperatorClaim } from "@/lib/types";
 import { useDictation } from "./use-dictation";
+import { btnGhost, btnPrimary, noticeError } from "./ui";
 
 interface MergeResponse {
   log: MergeLogEntry[];
@@ -15,13 +16,13 @@ interface MergeResponse {
 function cardStyle(action: MergeLogEntry["action"]): string {
   switch (action) {
     case "corroborated":
-      return "border-l-tint-green-ink bg-tint-green/40";
+      return "border-l-tint-teal-ink bg-tint-teal/40";
     case "conflict":
-      return "border-l-tint-red-ink bg-tint-red/40";
+      return "border-l-tint-oxide-ink bg-tint-oxide/40";
     case "superseded":
-      return "border-l-tint-grey-ink bg-tint-grey/40";
+      return "border-l-tint-stone-ink bg-tint-stone/40";
     default:
-      return "border-l-tint-blue-ink bg-tint-blue/40";
+      return "border-l-tint-dusk-ink bg-tint-dusk/40";
   }
 }
 
@@ -36,7 +37,7 @@ function CardTitle({
   const chip = entry.targetId ? (
     <Link
       href={`/brief#${entry.targetId}`}
-      className="underline underline-offset-2"
+      className="text-link underline underline-offset-2"
     >
       {entry.targetId}
     </Link>
@@ -117,11 +118,7 @@ export default function DebriefPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <h1 className="text-3xl font-bold">Debrief a trip</h1>
-        <button
-          onClick={resetDemo}
-          disabled={busy}
-          className="text-sm text-muted underline underline-offset-2 hover:text-ink disabled:opacity-50"
-        >
+        <button onClick={resetDemo} disabled={busy} className={btnGhost}>
           Reset demo
         </button>
       </div>
@@ -140,8 +137,8 @@ export default function DebriefPage() {
         }
         onChange={(e) => setText(e.target.value)}
         readOnly={dictation.listening}
-        className={`w-full max-w-prose border-2 p-3 ${
-          dictation.listening ? "border-tint-red-ink" : "border-ink"
+        className={`w-full max-w-prose rounded-md border bg-tint-stone/40 p-3 text-ink placeholder:text-muted ${
+          dictation.listening ? "border-tint-oxide-ink" : "border-ink"
         }`}
         placeholder="Tell us about the trip — which crossing, what they asked for, what surprised you…"
       />
@@ -150,7 +147,7 @@ export default function DebriefPage() {
         <button
           onClick={extractIntel}
           disabled={busy || dictation.listening || !text.trim()}
-          className="bg-action px-5 py-2 font-bold text-white shadow-[0_2px_0_#003078] hover:bg-[#003078] disabled:opacity-50"
+          className={btnPrimary}
         >
           {busy ? "Extracting intel…" : "Extract intel"}
         </button>
@@ -159,17 +156,17 @@ export default function DebriefPage() {
             onClick={dictation.listening ? dictation.stop : dictation.start}
             disabled={busy}
             aria-pressed={dictation.listening}
-            className={`flex items-center gap-2 border-2 px-5 py-2 font-bold disabled:opacity-50 ${
+            className={`flex items-center gap-2 rounded-md border px-5 py-2 font-bold text-ink disabled:opacity-50 ${
               dictation.listening
-                ? "border-tint-red-ink bg-tint-red/40"
-                : "border-ink hover:bg-tint-grey/40"
+                ? "border-tint-oxide-ink bg-tint-oxide/40"
+                : "border-ink bg-paper hover:bg-tint-stone"
             }`}
           >
             {dictation.listening ? (
               <>
                 <span
                   aria-hidden
-                  className="h-2.5 w-2.5 animate-pulse rounded-full bg-tint-red-ink"
+                  className="h-2.5 w-2.5 animate-pulse rounded-full bg-tint-oxide-ink"
                 />
                 Listening… tap to stop
               </>
@@ -181,15 +178,13 @@ export default function DebriefPage() {
       </div>
 
       {dictation.error && (
-        <p className="max-w-prose text-sm text-tint-red-ink">
+        <p className="max-w-prose text-sm text-tint-oxide-ink">
           {dictation.error}
         </p>
       )}
 
       {error && (
-        <div className="max-w-prose border-l-4 border-l-tint-red-ink bg-tint-red/40 p-4">
-          {error}
-        </div>
+        <div className={noticeError}>{error}</div>
       )}
 
       {result && (
@@ -201,7 +196,7 @@ export default function DebriefPage() {
           {result.log.map((entry, i) => (
             <div
               key={i}
-              className={`border-l-4 p-4 ${cardStyle(entry.action)}`}
+              className={`rounded-sm border-l-4 p-4 ${cardStyle(entry.action)}`}
             >
               <p className="font-bold">
                 <CardTitle entry={entry} claims={result.claims} />
@@ -211,7 +206,7 @@ export default function DebriefPage() {
           ))}
           <Link
             href="/brief"
-            className="inline-block bg-action px-5 py-2 font-bold text-white shadow-[0_2px_0_#003078] hover:bg-[#003078]"
+            className={`inline-block ${btnPrimary}`}
           >
             View corridor brief →
           </Link>
