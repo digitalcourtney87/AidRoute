@@ -11,11 +11,14 @@ export function isStoreFailure(err: unknown): boolean {
   );
 }
 
-// A missing/invalid ANTHROPIC_API_KEY, a Claude API error status, or a Claude
-// timeout — server-side conditions the operator can't fix by rephrasing.
+// A missing/invalid ANTHROPIC_API_KEY, a Claude API error status or timeout,
+// or a transport failure reaching the API (callClaude wraps those) —
+// server-side conditions the operator can't fix by rephrasing. Anchored to
+// the message start so model-controlled text echoed inside other errors
+// (e.g. parse failures) can't spoof the classification.
 export function isClaudeFailure(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
-  return /ANTHROPIC_API_KEY|Claude API/i.test(msg);
+  return /^(Claude API|ANTHROPIC_API_KEY)/i.test(msg);
 }
 
 export function publicErrorMessage(err: unknown, fallback: string): string {
