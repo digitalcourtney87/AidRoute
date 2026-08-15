@@ -29,8 +29,8 @@ _Avoid_: recency, age
 ### Capture
 
 **Debrief**:
-A post-trip account given by an operator in their own words — the raw source from which claims are extracted.
-_Avoid_: interview, submission, report
+A post-trip account given by an operator in their own words, typed or spoken — the raw source from which claims are extracted. When spoken, the transcript is the debrief; voice is an input method, not an artifact, and audio is never kept.
+_Avoid_: interview, submission, report, recording
 
 **Capture Trail**:
 The append-only record of how intelligence entered the system: debriefs, merge events, and ask logs.

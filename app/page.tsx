@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { appendTranscript } from "@/lib/dictation";
 import type { MergeLogEntry, OperatorClaim } from "@/lib/types";
+import { useDictation } from "./use-dictation";
 
 interface MergeResponse {
   log: MergeLogEntry[];
@@ -60,6 +62,9 @@ export default function DebriefPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResponse | null>(null);
+  const dictation = useDictation((chunk) =>
+    setText((current) => appendTranscript(current, chunk)),
+  );
 
   async function extractIntel() {
     setBusy(true);
@@ -96,6 +101,7 @@ export default function DebriefPage() {
   }
 
   async function resetDemo() {
+    dictation.stop();
     const res = await fetch("/api/reset", { method: "POST" });
     setText("");
     setResult(null);
@@ -122,23 +128,61 @@ export default function DebriefPage() {
         checklist better.
       </p>
 
+      {/* While listening the box shows the in-flight interim guess and the
+          mic owns it; the operator reviews and edits after tapping stop —
+          dictated text is never submitted unseen. */}
       <textarea
         rows={12}
-        value={text}
+        value={
+          dictation.listening ? appendTranscript(text, dictation.interim) : text
+        }
         onChange={(e) => setText(e.target.value)}
-        className="w-full max-w-prose border-2 border-ink p-3"
+        readOnly={dictation.listening}
+        className={`w-full max-w-prose border-2 p-3 ${
+          dictation.listening ? "border-tint-red-ink" : "border-ink"
+        }`}
         placeholder="Tell us about the trip — which crossing, what they asked for, what surprised you…"
       />
 
-      <div>
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={extractIntel}
-          disabled={busy || !text.trim()}
+          disabled={busy || dictation.listening || !text.trim()}
           className="bg-action px-5 py-2 font-bold text-white shadow-[0_2px_0_#003078] hover:bg-[#003078] disabled:opacity-50"
         >
           {busy ? "Extracting intel…" : "Extract intel"}
         </button>
+        {dictation.supported && (
+          <button
+            onClick={dictation.listening ? dictation.stop : dictation.start}
+            disabled={busy}
+            aria-pressed={dictation.listening}
+            className={`flex items-center gap-2 border-2 px-5 py-2 font-bold disabled:opacity-50 ${
+              dictation.listening
+                ? "border-tint-red-ink bg-tint-red/40"
+                : "border-ink hover:bg-tint-grey/40"
+            }`}
+          >
+            {dictation.listening ? (
+              <>
+                <span
+                  aria-hidden
+                  className="h-2.5 w-2.5 animate-pulse rounded-full bg-tint-red-ink"
+                />
+                Listening… tap to stop
+              </>
+            ) : (
+              "Dictate instead"
+            )}
+          </button>
+        )}
       </div>
+
+      {dictation.error && (
+        <p className="max-w-prose text-sm text-tint-red-ink">
+          {dictation.error}
+        </p>
+      )}
 
       {error && (
         <div className="max-w-prose border-l-4 border-l-tint-red-ink bg-tint-red/40 p-4">
