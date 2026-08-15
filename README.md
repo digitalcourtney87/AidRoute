@@ -22,7 +22,7 @@ This evidence comes from a structured interview (14 Aug) with an experienced vol
 
 ## The product
 
-After each trip, an operator gives a 5-minute debrief. The system:
+After each trip, an operator gives a 5-minute debrief — typed, or dictated by voice on supported browsers (the transcript is the debrief; audio is never stored — [ADR-0003](docs/adr/0003-voice-input-without-audio-retention.md)). The system:
 
 1. **Extracts** structured, dated intelligence claims (Claude API)
 2. **Merges** them deterministically in code — corroborate / supersede / conflict — never letting the model decide what's true

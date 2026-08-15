@@ -13,7 +13,7 @@ const ITEMS = [
 export function Nav() {
   const pathname = usePathname();
   return (
-    <nav className="flex gap-6 text-sm">
+    <nav className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
       {ITEMS.map((item) => {
         const active = pathname === item.href;
         return (

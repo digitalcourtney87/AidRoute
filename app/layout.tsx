@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} min-h-screen antialiased`}>
         <header className="border-b-[10px] border-action bg-ink text-white print:hidden">
-          <div className="mx-auto flex max-w-4xl items-baseline gap-8 px-4 py-4">
+          <div className="mx-auto flex max-w-4xl flex-wrap items-baseline gap-x-8 gap-y-2 px-4 py-4">
             <span className="text-xl font-bold">AidRoute Debrief</span>
             <Nav />
           </div>
