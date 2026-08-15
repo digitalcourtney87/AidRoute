@@ -24,6 +24,9 @@ export interface OperatorClaim {
   confidence: Confidence;
   status: Status;
   superseded_by?: string;
+  // Conflicting pairs are cross-referenced both ways so the UI can render
+  // them side-by-side. Only the merge engine writes this.
+  conflicts_with?: string[];
   n_reports: number;
   verbatim_quote?: string;
   notes?: string;
