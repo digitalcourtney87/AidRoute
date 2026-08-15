@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* GOV.UK-inspired, not GOV.UK-branded: near-black text, action blue, generous
+   whitespace, visible focus states. No crown, no GDS Transport. */
+@theme {
+  --color-ink: #0b0c0c;
+  --color-action: #1d70b8;
+  --color-muted: #505a5f;
+  --color-tint-green: #cce2d8;
+  --color-tint-green-ink: #005a30;
+  --color-tint-blue: #d2e2f1;
+  --color-tint-blue-ink: #144e81;
+  --color-tint-red: #f6d7d2;
+  --color-tint-red-ink: #942514;
+  --color-tint-grey: #e8e8e8;
+  --color-tint-grey-ink: #383f43;
+  --color-tint-amber: #fff7bf;
+  --color-tint-amber-ink: #594d00;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 3px solid #ffdd00;
+  outline-offset: 0;
+  box-shadow: inset 0 0 0 2px var(--color-ink);
+}
