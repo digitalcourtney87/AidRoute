@@ -36,12 +36,17 @@ export interface ClaudeCallOptions {
   system: string;
   prompt: string;
   maxTokens?: number;
+  // The handoff's 30s default fits extraction; checklist generation is a much
+  // longer output and needs more headroom (the canned demo path is instant
+  // regardless).
+  timeoutMs?: number;
 }
 
 export async function callClaude({
   system,
   prompt,
   maxTokens = 4096,
+  timeoutMs = TIMEOUT_MS,
 }: ClaudeCallOptions): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -51,7 +56,7 @@ export async function callClaude({
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
@@ -85,7 +90,7 @@ export async function callClaude({
       .join("");
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      throw new Error(`Claude API call timed out after ${TIMEOUT_MS / 1000}s`);
+      throw new Error(`Claude API call timed out after ${timeoutMs / 1000}s`);
     }
     throw err;
   } finally {
