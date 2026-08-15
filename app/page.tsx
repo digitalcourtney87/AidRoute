@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { appendTranscript } from "@/lib/dictation";
+import { readApiJson } from "@/lib/read-api-json";
 import type { MergeLogEntry, OperatorClaim } from "@/lib/types";
 import { useDictation } from "./use-dictation";
 
@@ -76,8 +77,10 @@ export default function DebriefPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      const extractBody = await extractRes.json();
-      if (!extractRes.ok) throw new Error(extractBody.error ?? "Extraction failed");
+      const extractBody = await readApiJson<{
+        extracted: unknown;
+        debrief_id?: string | null;
+      }>(extractRes);
 
       const mergeRes = await fetch("/api/merge", {
         method: "POST",
@@ -89,8 +92,7 @@ export default function DebriefPage() {
           debrief_id: extractBody.debrief_id ?? null,
         }),
       });
-      const mergeBody = await mergeRes.json();
-      if (!mergeRes.ok) throw new Error(mergeBody.error ?? "Merge failed");
+      const mergeBody = await readApiJson<MergeResponse>(mergeRes);
 
       setResult(mergeBody as MergeResponse);
     } catch (err) {

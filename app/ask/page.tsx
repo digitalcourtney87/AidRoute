@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { readApiJson } from "@/lib/read-api-json";
 import type { AskResponse } from "@/lib/ask";
 import { SUGGESTED_QUESTIONS } from "@/lib/ask";
 
@@ -23,9 +24,8 @@ export default function AskPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question: q }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? "Ask failed");
-      setResult(body as AskResponse);
+      const body = await readApiJson<AskResponse>(res);
+      setResult(body);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

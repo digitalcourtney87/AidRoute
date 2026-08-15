@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { publicErrorMessage } from "@/lib/store-errors";
 import { logMergeEvents, runMerge } from "@/lib/store";
 import { validateExtractedClaims } from "@/lib/validate";
 
@@ -32,7 +33,12 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("merge failed:", err);
     return NextResponse.json(
-      { error: "Couldn't apply the merge just now — try again." },
+      {
+        error: publicErrorMessage(
+          err,
+          "Couldn't apply the merge just now — try again.",
+        ),
+      },
       { status: 503 },
     );
   }

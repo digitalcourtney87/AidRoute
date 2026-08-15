@@ -10,12 +10,30 @@ import type { AskResponse } from "./ask";
 import { mergeClaims } from "./merge";
 import { loadSeed, type StoreState } from "./seed";
 import type { MergeRunResult, StoreBackend } from "./store-backend";
+import { readSupabaseEnv, redactSecrets } from "./supabase-env";
 import type {
   ExtractedClaim,
   MergeResult,
   OfficialRule,
   OperatorClaim,
 } from "./types";
+
+function errorText(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (
+    err &&
+    typeof err === "object" &&
+    "message" in err &&
+    typeof (err as { message: unknown }).message === "string"
+  ) {
+    return (err as { message: string }).message;
+  }
+  return String(err);
+}
+
+function rpcFailure(op: string, err: unknown): Error {
+  return new Error(`${op} failed: ${redactSecrets(errorText(err))}`);
+}
 
 const MERGE_RETRIES = 5;
 
@@ -35,15 +53,23 @@ interface VersionedState extends StoreState {
 }
 
 export function createSupabaseBackend(): StoreBackend {
-  const client: SupabaseClient = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } },
-  );
+  const { url, key } = readSupabaseEnv();
+  const client: SupabaseClient = createClient(url, key, {
+    auth: { persistSession: false },
+  });
 
   async function loadVersioned(): Promise<VersionedState> {
-    const { data, error } = await client.rpc("get_corridor_state");
-    if (error) throw new Error(`get_corridor_state failed: ${error.message}`);
+    let data: unknown;
+    try {
+      const result = await client.rpc("get_corridor_state");
+      if (result.error) throw rpcFailure("get_corridor_state", result.error);
+      data = result.data;
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith("get_corridor_state failed:")) {
+        throw err;
+      }
+      throw rpcFailure("get_corridor_state", err);
+    }
     const raw = data as {
       version: number;
       claims: Record<string, unknown>[];
@@ -60,10 +86,16 @@ export function createSupabaseBackend(): StoreBackend {
     expectedVersion: number,
     claims: OperatorClaim[],
   ): Promise<boolean> {
-    const { error } = await client.rpc("replace_claims", {
-      expected_version: expectedVersion,
-      new_claims: claims,
-    });
+    let error: { message: string } | null = null;
+    try {
+      const result = await client.rpc("replace_claims", {
+        expected_version: expectedVersion,
+        new_claims: claims,
+      });
+      error = result.error;
+    } catch (err) {
+      throw rpcFailure("replace_claims", err);
+    }
     if (!error) return true;
     // The RPC raises a plain application error prefixed 'version_conflict' on
     // a stale version. (Deliberately NOT SQLSTATE 40001: PostgREST treats
@@ -72,7 +104,7 @@ export function createSupabaseBackend(): StoreBackend {
     if (error.message.includes("version_conflict")) {
       return false;
     }
-    throw new Error(`replace_claims failed: ${error.message}`);
+    throw rpcFailure("replace_claims", error);
   }
 
   return {
@@ -93,7 +125,7 @@ export function createSupabaseBackend(): StoreBackend {
 
     async addClaim(claim: OperatorClaim): Promise<void> {
       const { error } = await client.from("operator_claims").insert(claim);
-      if (error) throw new Error(`addClaim failed: ${error.message}`);
+      if (error) throw rpcFailure("addClaim", error);
     },
 
     async updateClaim(
@@ -106,7 +138,7 @@ export function createSupabaseBackend(): StoreBackend {
         .eq("id", id)
         .select()
         .maybeSingle();
-      if (error) throw new Error(`updateClaim failed: ${error.message}`);
+      if (error) throw rpcFailure("updateClaim", error);
       return data ? stripNulls<OperatorClaim>(data) : undefined;
     },
 
@@ -130,7 +162,7 @@ export function createSupabaseBackend(): StoreBackend {
         seed_claims: seed.claims,
         seed_rules: seed.rules,
       });
-      if (error) throw new Error(`reset_corridor failed: ${error.message}`);
+      if (error) throw rpcFailure("reset_corridor", error);
     },
 
     // Trail writes are best-effort by contract (store-backend.ts): a lost
@@ -139,16 +171,21 @@ export function createSupabaseBackend(): StoreBackend {
       rawText: string,
       extracted: ExtractedClaim[],
     ): Promise<string | null> {
-      const { data, error } = await client
-        .from("debriefs")
-        .insert({ raw_text: rawText, extracted })
-        .select("id")
-        .single();
-      if (error) {
-        console.error("trail: logDebrief failed:", error.message);
+      try {
+        const { data, error } = await client
+          .from("debriefs")
+          .insert({ raw_text: rawText, extracted })
+          .select("id")
+          .single();
+        if (error) {
+          console.error("trail: logDebrief failed:", redactSecrets(error.message));
+          return null;
+        }
+        return data.id as string;
+      } catch (err) {
+        console.error("trail: logDebrief failed:", redactSecrets(errorText(err)));
         return null;
       }
-      return data.id as string;
     },
 
     async logMergeEvents(
@@ -162,18 +199,36 @@ export function createSupabaseBackend(): StoreBackend {
         target_id: entry.targetId ?? null,
         extracted: entry.extracted,
       }));
-      const { error } = await client.from("merge_events").insert(rows);
-      if (error) console.error("trail: logMergeEvents failed:", error.message);
+      try {
+        const { error } = await client.from("merge_events").insert(rows);
+        if (error) {
+          console.error(
+            "trail: logMergeEvents failed:",
+            redactSecrets(error.message),
+          );
+        }
+      } catch (err) {
+        console.error(
+          "trail: logMergeEvents failed:",
+          redactSecrets(errorText(err)),
+        );
+      }
     },
 
     async logAsk(question: string, response: AskResponse): Promise<void> {
-      const { error } = await client.from("ask_logs").insert({
-        question,
-        answer: response.answer,
-        gap: response.no_verified_intel,
-        citations: response.cited_ids,
-      });
-      if (error) console.error("trail: logAsk failed:", error.message);
+      try {
+        const { error } = await client.from("ask_logs").insert({
+          question,
+          answer: response.answer,
+          gap: response.no_verified_intel,
+          citations: response.cited_ids,
+        });
+        if (error) {
+          console.error("trail: logAsk failed:", redactSecrets(error.message));
+        }
+      } catch (err) {
+        console.error("trail: logAsk failed:", redactSecrets(errorText(err)));
+      }
     },
   };
 }

@@ -3,6 +3,7 @@ import { callClaude, parseModelJson } from "@/lib/anthropic";
 import { getCannedChecklist } from "@/lib/canned";
 import { validateChecklist } from "@/lib/checklist";
 import { CHECKLIST_PROMPT } from "@/lib/prompts";
+import { publicErrorMessage } from "@/lib/store-errors";
 import { getState } from "@/lib/store";
 import type { Leg } from "@/lib/types";
 
@@ -14,47 +15,49 @@ export async function POST(req: Request) {
     ? (body.legs.filter((l) => typeof l === "string") as Leg[])
     : null;
 
-  const state = await getState();
-
-  // The canned checklist serves only when the store is exactly the frozen
-  // post-demo-merge state (fingerprint match) and no leg filter is applied.
-  if (!requestedLegs && req.headers.get("x-force-live") !== "1") {
-    const canned = getCannedChecklist(state.claims);
-    if (canned) {
-      return NextResponse.json({ legs: canned, dropped: 0, canned: true });
-    }
-  }
-
-  const { rules } = state;
-  const active = state.claims.filter(
-    (c) =>
-      c.status !== "superseded" &&
-      (!requestedLegs || requestedLegs.includes(c.leg)),
-  );
-  const activeRules = rules.filter(
-    (r) => !requestedLegs || requestedLegs.includes(r.leg),
-  );
-
-  const store = {
-    official_rules: activeRules,
-    operator_claims: active.map(
-      ({ id, leg, claim, status, last_verified, n_reports, confidence, entities, conflicts_with }) => ({
-        id, leg, claim, status, last_verified, n_reports, confidence, entities,
-        ...(conflicts_with ? { conflicts_with } : {}),
-      }),
-    ),
-  };
-  // Spell the conflict pairs out — the model reliably presents both accounts
-  // only when the pairing is explicit, not implied by matching status fields.
-  const conflictPairs = active
-    .filter((c) => c.status === "conflicting" && (c.conflicts_with ?? []).length > 0)
-    .map((c) => `${c.id} ↔ ${(c.conflicts_with ?? []).join(", ")}`);
-  const validIds = new Set([
-    ...activeRules.map((r) => r.id),
-    ...active.map((c) => c.id),
-  ]);
-
+  // The store read lives inside the try: a misconfigured backend must surface
+  // as this route's JSON error, not an unhandled rejection (raw Next 500).
   try {
+    const state = await getState();
+
+    // The canned checklist serves only when the store is exactly the frozen
+    // post-demo-merge state (fingerprint match) and no leg filter is applied.
+    if (!requestedLegs && req.headers.get("x-force-live") !== "1") {
+      const canned = getCannedChecklist(state.claims);
+      if (canned) {
+        return NextResponse.json({ legs: canned, dropped: 0, canned: true });
+      }
+    }
+
+    const { rules } = state;
+    const active = state.claims.filter(
+      (c) =>
+        c.status !== "superseded" &&
+        (!requestedLegs || requestedLegs.includes(c.leg)),
+    );
+    const activeRules = rules.filter(
+      (r) => !requestedLegs || requestedLegs.includes(r.leg),
+    );
+
+    const store = {
+      official_rules: activeRules,
+      operator_claims: active.map(
+        ({ id, leg, claim, status, last_verified, n_reports, confidence, entities, conflicts_with }) => ({
+          id, leg, claim, status, last_verified, n_reports, confidence, entities,
+          ...(conflicts_with ? { conflicts_with } : {}),
+        }),
+      ),
+    };
+    // Spell the conflict pairs out — the model reliably presents both accounts
+    // only when the pairing is explicit, not implied by matching status fields.
+    const conflictPairs = active
+      .filter((c) => c.status === "conflicting" && (c.conflicts_with ?? []).length > 0)
+      .map((c) => `${c.id} ↔ ${(c.conflicts_with ?? []).join(", ")}`);
+    const validIds = new Set([
+      ...activeRules.map((r) => r.id),
+      ...active.map((c) => c.id),
+    ]);
+
     const raw = await callClaude({
       system: CHECKLIST_PROMPT,
       prompt: [
@@ -75,8 +78,10 @@ export async function POST(req: Request) {
     console.error("checklist failed:", err);
     return NextResponse.json(
       {
-        error:
+        error: publicErrorMessage(
+          err,
           "Couldn't generate the checklist just now. Check the connection and try again.",
+        ),
       },
       { status: 422 },
     );

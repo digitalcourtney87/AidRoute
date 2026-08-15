@@ -2,7 +2,8 @@
 
 - **Date:** 2026-08-15
 - **Target:** https://aid-route-five.vercel.app/
-- **Mode:** Report-only (diagnosis + remediation plan; no fixes applied)
+- **Mode:** Originally report-only. Root cause pinned from Vercel runtime
+  logs; code remediations for ISSUE-001–005 are in this branch.
 - **Framework:** Next.js 15 (App Router) on Vercel
 - **Pages visited:** 4 (`/`, `/brief`, `/checklist`, `/ask`)
 - **API routes probed:** 5 (`/api/extract`, `/api/ask`, `/api/checklist`, `/api/merge`, `/api/reset`)
@@ -33,22 +34,25 @@ suggested chip and the app looks healthy; type your own question and it breaks.
 | `GET /brief` | **500** | Bare white Next.js crash page |
 | `POST /api/reset` | 401 | "Reset is restricted" (intentional — `ADMIN_TOKEN` is set) |
 
-## Root cause
+## Root cause (pinned from Vercel logs, 2026-08-15)
 
-Production runs the **Supabase** store backend, and every Supabase read/write
-throws at runtime.
+Every live store path throws:
 
-The evidence chain is airtight on the *where*, even without server logs:
+```
+get_corridor_state failed: TypeError: Headers.set: "<jwt>\n<jwt>\n<truncated jwt>"
+is an invalid header value.
+```
 
-1. [`lib/store-memory.ts:10`](lib/store-memory.ts:10) calls `loadSeed()` at
-   **module load**. `lib/store.ts` imports that module unconditionally, so if
-   the seed file were missing every route would 500 — including the canned ones.
-2. The canned paths return **200**. So `lib/store` imported cleanly, `loadSeed()`
-   succeeded, `data/` is bundled in the lambda, and the in-memory backend is healthy.
-3. Yet every path that actually *reads* the store fails.
-4. Therefore `persistent === true` ([`lib/store.ts:20`](lib/store.ts:20)) — both
-   `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set in Vercel — and
-   `createSupabaseBackend()` is throwing on the `get_corridor_state` RPC.
+`SUPABASE_SERVICE_ROLE_KEY` in Vercel is the service-role JWT pasted **three
+times**, joined by newlines. Fetch `Headers.set` rejects CR/LF in header
+values, so the Supabase client never leaves the process. The project ref
+inside the JWT is the live AidRoute project (`nwpcwwrhsmabrwwvhnfr`) — this
+is not a wrong-project or rotated-key failure.
+
+The first copy is a well-formed JWT. Code now takes the first JWT and
+strips whitespace before `createClient`, so a deploy unblocks the store even
+before the env var is cleaned. **Still rotate the key**: it is now in Vercel
+runtime logs.
 
 What is **not** the cause (each checked and ruled out):
 
@@ -60,13 +64,16 @@ What is **not** the cause (each checked and ruled out):
   is merged into `main`.
 - **Bad model ID** — `claude-sonnet-4-6` in [`lib/anthropic.ts:6`](lib/anthropic.ts:6)
   is a valid current model, and `temperature: 0` is still permitted on it.
-- **Missing seed file in the bundle** — disproved by step 2 above.
+- **Missing seed file in the bundle** — disproved because canned paths return 200.
 
-Remaining candidates, in likelihood order: Vercel's `SUPABASE_URL` /
-`SUPABASE_SERVICE_ROLE_KEY` point at a stale or wrong project, or the key was
-rotated; or `get_corridor_state` errors for a reason only the server log names.
-**Pinning this needs one look at the Vercel runtime log or one direct RPC call** —
-both attempts were blocked by the permission classifier during this run.
+Evidence that selected the Supabase backend (unchanged):
+
+1. [`lib/store-memory.ts`](lib/store-memory.ts) calls `loadSeed()` at module load.
+   `lib/store.ts` imports that module unconditionally, so a missing seed file
+   would 500 every route — including the canned ones.
+2. The canned paths return **200**. So `lib/store` imported cleanly.
+3. Every path that actually *reads* the store failed, until the header value
+   was shown to contain newlines.
 
 ## Findings
 
@@ -124,3 +131,19 @@ second failure behind it.
   and honest about gaps.
 - `/api/reset` is correctly locked down.
 - Empty-input validation returns a proper `400`.
+
+## Remediation (applied in code)
+
+| Issue | Change |
+|---|---|
+| ISSUE-001 | `lib/supabase-env.ts` takes the first JWT from a whitespace-duplicated key and trims `SUPABASE_URL`. |
+| ISSUE-002 | `app/error.tsx` keeps nav/branding when `/brief` (or any server page) throws. |
+| ISSUE-003 | Store reads on `/api/ask` and `/api/checklist` sit inside the try, matching extract. |
+| ISSUE-004 | Clients parse via `readApiJson` — empty 500s no longer leak a JS exception. |
+| ISSUE-005 | Store failures return "The corridor store is unavailable…" instead of "rephrase". |
+| Secrets in logs | RPC errors run through `redactSecrets` before throw/log. |
+
+**Operator action still required:** rotate the leaked service-role key in
+Supabase, paste the new value **once** into Vercel `SUPABASE_SERVICE_ROLE_KEY`,
+and redeploy. Then hit a typed `/api/ask` to confirm Anthropic (ISSUE-006).
+

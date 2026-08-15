@@ -6,13 +6,14 @@
 //                           from .env.local; run after `supabase db push`)
 import { createClient } from "@supabase/supabase-js";
 import { loadSeed } from "../lib/seed.ts";
+import { readSupabaseEnv } from "../lib/supabase-env.ts";
 
-const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!url || !key) {
-  console.error(
-    "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set (in .env.local).",
-  );
+let url: string;
+let key: string;
+try {
+  ({ url, key } = readSupabaseEnv());
+} catch (err) {
+  console.error(err instanceof Error ? err.message : err);
   process.exit(1);
 }
 

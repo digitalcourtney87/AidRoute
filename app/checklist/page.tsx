@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { readApiJson } from "@/lib/read-api-json";
 import type { ChecklistItemType, ChecklistLeg } from "@/lib/checklist";
 
 const TYPE_BADGES: Record<ChecklistItemType, string> = {
@@ -25,9 +26,8 @@ export default function ChecklistPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({}),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? "Generation failed");
-      setLegs(body.legs as ChecklistLeg[]);
+      const body = await readApiJson<{ legs: ChecklistLeg[] }>(res);
+      setLegs(body.legs);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
