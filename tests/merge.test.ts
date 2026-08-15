@@ -176,6 +176,32 @@ describe("merge rules beyond the oracle", () => {
     expect(log[0].action).toBe("conflict");
   });
 
+  it("does not treat numbers with different units as contradictions", () => {
+    // "5 hours" at the crossing must not conflict with PL-004's "3.5t → 7t"
+    // vehicle limit — incommensurable quantities are not contradictions.
+    const clearanceTime: ExtractedClaim = {
+      ...CONTRADICTS_PL004,
+      claim: "Cleared the third crossing in about 5 hours with correct paperwork.",
+      entities: {
+        crossings: ["the third crossing"],
+        thresholds: ["5 hours clearance time"],
+      },
+      relation_if_match: "same",
+    };
+    const { log } = mergeClaims([clearanceTime], seedClaims());
+    expect(log[0].action).toBe("corroborated");
+  });
+
+  it("still conflicts when units match but values diverge, across unit spellings", () => {
+    const spelledOut: ExtractedClaim = {
+      ...CONTRADICTS_PL004,
+      entities: { thresholds: ["5 tonnes vehicle limit"] },
+      relation_if_match: "same",
+    };
+    const { log } = mergeClaims([spelledOut], seedClaims());
+    expect(log[0].action).toBe("conflict");
+  });
+
   it("never mutates its inputs", () => {
     const before = structuredClone(seedClaims());
     mergeClaims([CORROBORATES_FR001, CONTRADICTS_PL004, NEW_CLAIM], seedClaims());
