@@ -70,11 +70,24 @@ function overlapCount(
   return count;
 }
 
-function numbersIn(values: string[]): Set<number> {
-  const out = new Set<number>();
+// Units are normalised so "5 tonnes" and "5t" compare, while "5 hours" and
+// "7t" never do — incommensurable quantities are not contradictions.
+const UNIT_ALIASES: Record<string, string> = {
+  t: "t", tonne: "t", tonnes: "t", ton: "t", tons: "t",
+  h: "h", hr: "h", hrs: "h", hour: "h", hours: "h",
+  min: "min", mins: "min", minute: "min", minutes: "min",
+  d: "d", day: "d", days: "d",
+  kg: "kg", kgs: "kg",
+};
+
+function numbersByUnit(values: string[]): Map<string, Set<number>> {
+  const out = new Map<string, Set<number>>();
   for (const value of values) {
-    for (const match of value.matchAll(/\d+(?:\.\d+)?/g)) {
-      out.add(Number(match[0]));
+    for (const match of value.matchAll(/(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?/g)) {
+      const raw = (match[2] ?? "").toLowerCase();
+      const unit = UNIT_ALIASES[raw] ?? raw;
+      if (!out.has(unit)) out.set(unit, new Set());
+      out.get(unit)!.add(Number(match[1]));
     }
   }
   return out;
@@ -86,19 +99,24 @@ function isSubset(a: Set<number>, b: Set<number>): boolean {
 }
 
 // A "same" verdict from the model is overridden by code when both sides carry
-// threshold numbers and neither side's numbers are contained in the other's.
-// Subset means agreement or refinement ("7t" corroborates "3.5t → 7t"); a
-// novel number on either side ("5t" against "3.5t → 7t") blocks the silent
-// merge — transition phrasings carry old and new values, so a bare
-// intersection check would miss real contradictions.
+// threshold numbers in the SAME unit and neither side's numbers are contained
+// in the other's. Subset means agreement or refinement ("7t" corroborates
+// "3.5t → 7t"); a novel same-unit number on either side ("5t" against
+// "3.5t → 7t") blocks the silent merge — transition phrasings carry old and
+// new values, so a bare intersection check would miss real contradictions.
+// Numbers in units the other side doesn't mention are ignored entirely.
 function thresholdsContradict(
   a: Record<string, string[]>,
   b: Record<string, string[]>,
 ): boolean {
-  const na = numbersIn(a.thresholds ?? []);
-  const nb = numbersIn(b.thresholds ?? []);
-  if (na.size === 0 || nb.size === 0) return false;
-  return !isSubset(na, nb) && !isSubset(nb, na);
+  const na = numbersByUnit(a.thresholds ?? []);
+  const nb = numbersByUnit(b.thresholds ?? []);
+  for (const [unit, setA] of na) {
+    const setB = nb.get(unit);
+    if (!setB) continue;
+    if (!isSubset(setA, setB) && !isSubset(setB, setA)) return true;
+  }
+  return false;
 }
 
 function daysBetween(earlier: string, later: string): number {

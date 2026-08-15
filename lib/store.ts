@@ -65,6 +65,12 @@ export function updateClaim(
   return claim;
 }
 
+// The merge engine is pure and returns a fresh claims array; the merge route
+// applies it here in one step.
+export function replaceClaims(claims: OperatorClaim[]): void {
+  state.claims = claims;
+}
+
 export function reset(): void {
   state = freshState();
 }
