@@ -22,17 +22,36 @@ function cardStyle(action: MergeLogEntry["action"]): string {
   }
 }
 
-function cardTitle(entry: MergeLogEntry, claims: OperatorClaim[]): string {
+function CardTitle({
+  entry,
+  claims,
+}: {
+  entry: MergeLogEntry;
+  claims: OperatorClaim[];
+}) {
   const target = claims.find((c) => c.id === entry.targetId);
+  const chip = entry.targetId ? (
+    <Link
+      href={`/brief#${entry.targetId}`}
+      className="underline underline-offset-2"
+    >
+      {entry.targetId}
+    </Link>
+  ) : null;
   switch (entry.action) {
     case "corroborated":
-      return `Corroborates ${entry.targetId}${target ? ` (now ${target.n_reports} reports)` : ""}`;
+      return (
+        <>
+          Corroborates {chip}
+          {target ? ` (now ${target.n_reports} reports)` : ""}
+        </>
+      );
     case "conflict":
-      return `CONFLICT with ${entry.targetId} — both shown in the brief`;
+      return <>CONFLICT with {chip} — both shown in the brief</>;
     case "superseded":
-      return `Supersedes ${entry.targetId} — older claim kept in history`;
+      return <>Supersedes {chip} — older claim kept in history</>;
     default:
-      return "New claim created";
+      return <>New claim created</>;
   }
 }
 
@@ -84,7 +103,8 @@ export default function DebriefPage() {
         <h1 className="text-3xl font-bold">Debrief a trip</h1>
         <button
           onClick={resetDemo}
-          className="text-sm text-muted underline underline-offset-2 hover:text-ink"
+          disabled={busy}
+          className="text-sm text-muted underline underline-offset-2 hover:text-ink disabled:opacity-50"
         >
           Reset demo
         </button>
@@ -129,7 +149,9 @@ export default function DebriefPage() {
               key={i}
               className={`border-l-4 p-4 ${cardStyle(entry.action)}`}
             >
-              <p className="font-bold">{cardTitle(entry, result.claims)}</p>
+              <p className="font-bold">
+                <CardTitle entry={entry} claims={result.claims} />
+              </p>
               <p className="mt-1 text-sm">{entry.extracted.claim}</p>
             </div>
           ))}
