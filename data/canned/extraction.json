@@ -1,0 +1,72 @@
+{
+  "input_startswith": "Just back from our August run, two vans via the tunnel. The customs company tried to talk us into a ",
+  "extracted": [
+    {
+      "claim": "The T1 was filed line-by-line rather than as a bulk total, despite the customs intermediary suggesting a cheaper bulk declaration, and the convoy cleared the Polish side without issues.",
+      "leg": "FR_TRANSIT",
+      "entities": {
+        "forms": [
+          "T1"
+        ],
+        "actors": [
+          "customs intermediary"
+        ],
+        "practices": [
+          "line-by-line T1 itemisation"
+        ]
+      },
+      "date_observed": "2026-08",
+      "first_person": true,
+      "hearsay": false,
+      "confidence": "high",
+      "verbatim_quote": "we insisted on line-by-line on the T1 after hearing what happened to another group, and we cleared the Polish side in about five hours, no issues",
+      "matches_existing_id": "FR-001",
+      "relation_if_match": "same"
+    },
+    {
+      "claim": "The vehicle weight limit at the Polish crossing used by this convoy changed from 7 tonnes to 5 tonnes at the start of August 2026, according to the border guard on site.",
+      "leg": "PL_ENTRY",
+      "entities": {
+        "crossings": [
+          "unnamed crossing used by this convoy — VERIFY"
+        ],
+        "thresholds": [
+          "7t → 5t vehicle limit, effective start of August 2026"
+        ],
+        "actors": [
+          "border guard"
+        ]
+      },
+      "date_observed": "2026-08",
+      "first_person": false,
+      "hearsay": true,
+      "confidence": "medium",
+      "verbatim_quote": "the crossing we used told us the vehicle limit is 5 tonnes now, not 7 — the guard said it changed at the start of August",
+      "matches_existing_id": "PL-004",
+      "relation_if_match": "contradicts"
+    },
+    {
+      "claim": "Polish border officials are now requesting the recipient organisation's registration number at the Polish crossing, not only at the Ukrainian side; this requirement was not reflected on any checklist seen by the operator.",
+      "leg": "PL_ENTRY",
+      "entities": {
+        "actors": [
+          "recipient organisation",
+          "Polish border officials"
+        ],
+        "documents": [
+          "recipient organisation registration number"
+        ],
+        "practices": [
+          "include recipient registration number in pre-crossing documentation pack"
+        ]
+      },
+      "date_observed": "2026-08",
+      "first_person": true,
+      "hearsay": false,
+      "confidence": "high",
+      "verbatim_quote": "they've started asking for the recipient organisation's registration number at the Polish side, not just the Ukrainian side — we had it in the email thread luckily, but it wasn't on any checklist we'd seen",
+      "matches_existing_id": null,
+      "relation_if_match": null
+    }
+  ]
+}

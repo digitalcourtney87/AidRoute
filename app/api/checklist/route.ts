@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaude, parseModelJson } from "@/lib/anthropic";
+import { getCannedChecklist } from "@/lib/canned";
 import { validateChecklist } from "@/lib/checklist";
 import { CHECKLIST_PROMPT } from "@/lib/prompts";
 import { getActiveClaims, getState } from "@/lib/store";
@@ -12,6 +13,15 @@ export async function POST(req: Request) {
   const requestedLegs = Array.isArray(body.legs)
     ? (body.legs.filter((l) => typeof l === "string") as Leg[])
     : null;
+
+  // The canned checklist serves only when the store is exactly the frozen
+  // post-demo-merge state (fingerprint match) and no leg filter is applied.
+  if (!requestedLegs && req.headers.get("x-force-live") !== "1") {
+    const canned = getCannedChecklist(getState().claims);
+    if (canned) {
+      return NextResponse.json({ legs: canned, dropped: 0, canned: true });
+    }
+  }
 
   const { rules } = getState();
   const active = getActiveClaims().filter(
