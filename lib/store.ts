@@ -12,14 +12,13 @@ import type { StoreState } from "./seed";
 import type { MergeRunResult, StoreBackend } from "./store-backend";
 import { memoryBackend } from "./store-memory";
 import { createSupabaseBackend } from "./store-supabase";
+import { hasSupabaseEnv } from "./supabase-env";
 import type { ExtractedClaim, MergeResult, OperatorClaim } from "./types";
 
 export type { StoreState } from "./seed";
 export type { MergeRunResult } from "./store-backend";
 
-export const persistent = Boolean(
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
-);
+export const persistent = hasSupabaseEnv();
 
 const backend: StoreBackend = persistent
   ? createSupabaseBackend()

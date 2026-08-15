@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { callClaude, parseModelJson } from "@/lib/anthropic";
 import { getCannedExtraction } from "@/lib/canned";
 import { EXTRACTOR_PROMPT } from "@/lib/prompts";
+import { publicErrorMessage } from "@/lib/store-errors";
 import { getActiveClaims, logDebrief } from "@/lib/store";
 import { validateExtractedClaims } from "@/lib/validate";
 
@@ -59,8 +60,10 @@ export async function POST(req: Request) {
     console.error("extract failed:", err);
     return NextResponse.json(
       {
-        error:
+        error: publicErrorMessage(
+          err,
           "Couldn't extract intel from that debrief just now. Check the connection and try again — or rephrase the account.",
+        ),
       },
       { status: 422 },
     );

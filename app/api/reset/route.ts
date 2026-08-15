@@ -22,9 +22,21 @@ function authorized(req: Request): boolean {
 }
 
 async function doReset() {
-  await reset();
-  const { claims, rules } = await getState();
-  return NextResponse.json({ ok: true, claims: claims.length, rules: rules.length });
+  try {
+    await reset();
+    const { claims, rules } = await getState();
+    return NextResponse.json({
+      ok: true,
+      claims: claims.length,
+      rules: rules.length,
+    });
+  } catch (err) {
+    console.error("reset failed:", err);
+    return NextResponse.json(
+      { error: "Couldn't reset the corridor store just now." },
+      { status: 503 },
+    );
+  }
 }
 
 export async function POST(req: Request) {

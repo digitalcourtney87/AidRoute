@@ -3,6 +3,7 @@ import { callClaude, parseModelJson } from "@/lib/anthropic";
 import { validateAsk } from "@/lib/ask";
 import { getCannedAsk } from "@/lib/canned";
 import { ASK_PROMPT } from "@/lib/prompts";
+import { publicErrorMessage } from "@/lib/store-errors";
 import { getActiveClaims, getState, logAsk } from "@/lib/store";
 
 // POST { question } → { answer, cited_ids, no_verified_intel }. Grounded in
@@ -27,23 +28,25 @@ export async function POST(req: Request) {
     }
   }
 
-  const active = await getActiveClaims();
-  const { rules } = await getState();
-  const store = {
-    official_rules: rules,
-    operator_claims: active.map(
-      ({ id, leg, claim, status, last_verified, n_reports, confidence, entities, conflicts_with }) => ({
-        id, leg, claim, status, last_verified, n_reports, confidence, entities,
-        ...(conflicts_with ? { conflicts_with } : {}),
-      }),
-    ),
-  };
-  const validIds = new Set([
-    ...rules.map((r) => r.id),
-    ...active.map((c) => c.id),
-  ]);
-
+  // The store read lives inside the try: a misconfigured backend must surface
+  // as this route's JSON error, not an unhandled rejection (raw Next 500).
   try {
+    const active = await getActiveClaims();
+    const { rules } = await getState();
+    const store = {
+      official_rules: rules,
+      operator_claims: active.map(
+        ({ id, leg, claim, status, last_verified, n_reports, confidence, entities, conflicts_with }) => ({
+          id, leg, claim, status, last_verified, n_reports, confidence, entities,
+          ...(conflicts_with ? { conflicts_with } : {}),
+        }),
+      ),
+    };
+    const validIds = new Set([
+      ...rules.map((r) => r.id),
+      ...active.map((c) => c.id),
+    ]);
+
     const raw = await callClaude({
       system: ASK_PROMPT,
       prompt: `QUESTION: ${question}\n\nCLAIM STORE:\n${JSON.stringify(store, null, 2)}`,
@@ -56,7 +59,12 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("ask failed:", err);
     return NextResponse.json(
-      { error: "Couldn't reach the corridor brain just now — try again." },
+      {
+        error: publicErrorMessage(
+          err,
+          "Couldn't reach the corridor brain just now — try again.",
+        ),
+      },
       { status: 422 },
     );
   }

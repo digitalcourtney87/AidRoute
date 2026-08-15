@@ -49,14 +49,14 @@ describe("POST /api/extract", () => {
   it("returns the crafted 422 JSON when the store read fails", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.mocked(getActiveClaims).mockRejectedValue(
-      new Error("supabase unreachable"),
+      new Error("get_corridor_state failed: supabase unreachable"),
     );
 
     const res = await POST(post("Unrehearsed debrief about an August run."));
 
     expect(res.status).toBe(422);
     const body = await res.json();
-    expect(body.error).toMatch(/try again/i);
+    expect(body.error).toMatch(/corridor store is unavailable/i);
   });
 
   it("extracts via the live path when the store is healthy", async () => {

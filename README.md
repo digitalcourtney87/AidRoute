@@ -63,7 +63,7 @@ npx supabase db push        # applies supabase/migrations/
 npm run db:seed             # seeds from data/seed-data.json (also = full reseed)
 ```
 
-On Vercel, additionally set `ADMIN_TOKEN` (protects `/api/reset` — send it as `x-admin-token`) and `CRON_SECRET` (lets the nightly cron in `vercel.json` reseed the sandbox). Locally, leave both unset and reset stays open. All database access is server-side with the service role; RLS is deny-all and no Supabase key ever reaches the browser.
+On Vercel, additionally set `ADMIN_TOKEN` (protects `/api/reset` — send it as `x-admin-token`) and `CRON_SECRET` (lets the nightly cron in `vercel.json` reseed the sandbox). Locally, leave both unset and reset stays open. All database access is server-side with the service role; RLS is deny-all and no Supabase key ever reaches the browser. Paste `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` once each, on a single line — extra newlines make the Authorization header invalid and take every live store path down.
 
 ## Scripts
 
@@ -71,7 +71,7 @@ On Vercel, additionally set `ADMIN_TOKEN` (protects `/api/reset` — send it as 
 |---------|--------------|
 | `npm start` | Production server — **use this for the demo**, not `npm run dev` (dev-mode module reloading can reset the in-memory store and bypass the instant canned path) |
 | `npm run dev` | Dev server with hot reload, for development only |
-| `npm test` | 55 unit tests: merge-engine rules against the seed file's oracle, citation validators, fixture guards |
+| `npm test` | Unit tests: merge-engine rules against the seed file's oracle, citation validators, fixture guards, store-env sanitisation |
 | `npm run demo-check` | Pre-rehearsal gate — hits every route with the demo inputs and asserts canned, schema-valid, oracle-exact responses. Run it before every rehearsal; it passes with no API key |
 | `npm run freeze-fixtures` | Regenerates `data/canned/` from the live routes (needs a running server + API key); `-- --keep-extraction` re-freezes the checklist only, `-- --ask-only` just the three questions |
 | `npm run smoke:extract` | One live extraction round-trip, for checking the API key works |
