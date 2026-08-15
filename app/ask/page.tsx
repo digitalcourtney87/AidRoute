@@ -5,6 +5,7 @@ import Link from "next/link";
 import { readApiJson } from "@/lib/read-api-json";
 import type { AskResponse } from "@/lib/ask";
 import { SUGGESTED_QUESTIONS } from "@/lib/ask";
+import { btnPrimary, field, noticeError, noticeWarn, sourceChip } from "../ui";
 
 export default function AskPage() {
   const [question, setQuestion] = useState("");
@@ -48,12 +49,12 @@ export default function AskPage() {
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && ask(question)}
           placeholder="e.g. Which crossing takes 7-tonne vehicles?"
-          className="w-full border-2 border-ink p-2"
+          className={`w-full ${field}`}
         />
         <button
           onClick={() => ask(question)}
           disabled={busy || !question.trim()}
-          className="shrink-0 bg-action px-5 py-2 font-bold text-white shadow-[0_2px_0_#003078] hover:bg-[#003078] disabled:opacity-50"
+          className={`shrink-0 ${btnPrimary}`}
         >
           {busy ? "Asking…" : "Ask"}
         </button>
@@ -65,7 +66,7 @@ export default function AskPage() {
             key={q}
             onClick={() => ask(q)}
             disabled={busy}
-            className="border border-action px-3 py-1 text-sm text-action hover:bg-tint-blue disabled:opacity-50"
+            className="rounded-sm border border-link px-3 py-1 text-sm text-link hover:bg-tint-dusk disabled:opacity-50"
           >
             {q}
           </button>
@@ -73,14 +74,12 @@ export default function AskPage() {
       </div>
 
       {error && (
-        <div className="max-w-prose border-l-4 border-l-tint-red-ink bg-tint-red/40 p-4">
-          {error}
-        </div>
+        <div className={noticeError}>{error}</div>
       )}
 
       {result &&
         (result.no_verified_intel ? (
-          <div className="max-w-prose border-4 border-tint-amber-ink bg-tint-amber/60 p-5">
+          <div className={noticeWarn}>
             <p className="font-bold">Honest gap — no verified intel</p>
             <p className="mt-2">{result.answer}</p>
             <p className="mt-3 text-sm text-muted">
@@ -90,7 +89,7 @@ export default function AskPage() {
             </p>
           </div>
         ) : (
-          <div className="max-w-prose border border-tint-grey p-5">
+          <div className="max-w-prose rounded-sm border border-tint-stone p-5">
             <p>{result.answer}</p>
             {result.cited_ids.length > 0 && (
               <p className="mt-3 flex flex-wrap gap-1 text-sm">
@@ -99,7 +98,7 @@ export default function AskPage() {
                   <Link
                     key={id}
                     href={`/brief#${id}`}
-                    className="border border-action px-1.5 text-xs text-action hover:bg-tint-blue"
+                    className={sourceChip}
                   >
                     {id}
                   </Link>

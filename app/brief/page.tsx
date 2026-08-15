@@ -3,6 +3,7 @@ import { freshness } from "@/lib/freshness";
 import { getState } from "@/lib/store";
 import type { Leg, OfficialRule, OperatorClaim, Status } from "@/lib/types";
 import { LEGS_IN_JOURNEY_ORDER } from "@/lib/types";
+import { noticeWarn, sourceChip, tag } from "../ui";
 
 // The brief must always reflect the live store (in-memory or Supabase),
 // never a build-time snapshot — merges from Screen 1 show up here immediately.
@@ -15,26 +16,29 @@ const LEG_TITLES: Record<Leg, string> = {
   UA_ENTRY: "Ukraine — entry",
 };
 
+const LEG_SHORT: Record<Leg, string> = {
+  GB_EXIT: "GB",
+  FR_TRANSIT: "FR",
+  PL_ENTRY: "PL",
+  UA_ENTRY: "UA",
+};
+
 const STATUS_TAGS: Record<Status, { label: string; className: string }> = {
-  corroborated: { label: "CORROBORATED", className: "bg-tint-green text-tint-green-ink" },
-  single_report: { label: "SINGLE REPORT", className: "bg-tint-blue text-tint-blue-ink" },
-  conflicting: { label: "CONFLICTING", className: "bg-tint-red text-tint-red-ink" },
-  superseded: { label: "SUPERSEDED", className: "bg-tint-grey text-tint-grey-ink" },
+  corroborated: { label: "CORROBORATED", className: `${tag} bg-tint-teal text-tint-teal-ink` },
+  single_report: { label: "SINGLE REPORT", className: `${tag} bg-tint-dusk text-tint-dusk-ink` },
+  conflicting: { label: "CONFLICTING", className: `${tag} bg-tint-oxide text-tint-oxide-ink` },
+  superseded: { label: "SUPERSEDED", className: `${tag} bg-tint-stone text-tint-stone-ink` },
 };
 
 const DOT_CLASSES = {
-  green: "bg-tint-green-ink",
-  amber: "bg-[#f47738]",
-  red: "bg-tint-red-ink",
+  green: "bg-tint-teal-ink",
+  amber: "bg-action",
+  red: "bg-tint-oxide-ink",
 } as const;
 
 function StatusTag({ status }: { status: Status }) {
-  const tag = STATUS_TAGS[status];
-  return (
-    <span className={`px-2 py-0.5 text-xs font-bold tracking-wide ${tag.className}`}>
-      {tag.label}
-    </span>
-  );
+  const stamp = STATUS_TAGS[status];
+  return <span className={stamp.className}>{stamp.label}</span>;
 }
 
 function FreshnessDot({ lastVerified }: { lastVerified: string }) {
@@ -46,7 +50,7 @@ function FreshnessDot({ lastVerified }: { lastVerified: string }) {
         aria-hidden
       />
       last verified {formatStoreDate(lastVerified)}
-      {f.note && <em className="text-tint-red-ink">— {f.note}</em>}
+      {f.note && <em className="text-tint-oxide-ink">— {f.note}</em>}
     </span>
   );
 }
@@ -70,7 +74,7 @@ function ClaimDetail({ claim }: { claim: OperatorClaim }) {
         </p>
       )}
       {claim.verbatim_quote && (
-        <blockquote className="border-l-4 border-tint-grey pl-3 italic">
+        <blockquote className="border-l-4 border-tint-stone pl-3 italic">
           “{claim.verbatim_quote}”
         </blockquote>
       )}
@@ -90,16 +94,16 @@ function ClaimDetail({ claim }: { claim: OperatorClaim }) {
 
 function OperatorClaimCard({ claim }: { claim: OperatorClaim }) {
   return (
-    <div className="border border-tint-grey p-4" id={claim.id}>
+    <div className="rounded-sm border border-tint-stone p-4" id={claim.id}>
       <div className="flex flex-wrap items-center gap-2">
         <StatusTag status={claim.status} />
-        <span className="text-xs text-muted">{claim.id}</span>
+        <span className="text-xs tabular-nums text-muted">{claim.id}</span>
         <FreshnessDot lastVerified={claim.last_verified} />
       </div>
       <p className="mt-2">{claim.claim}</p>
       <p className="mt-1 text-sm text-muted">{sourceLine(claim)}</p>
       <details className="mt-1 text-sm">
-        <summary className="cursor-pointer text-action">Detail</summary>
+        <summary className="cursor-pointer text-link">Detail</summary>
         <ClaimDetail claim={claim} />
       </details>
     </div>
@@ -108,7 +112,7 @@ function OperatorClaimCard({ claim }: { claim: OperatorClaim }) {
 
 function SupersededCard({ claim }: { claim: OperatorClaim }) {
   return (
-    <details className="border border-tint-grey bg-tint-grey/30 p-4" id={claim.id}>
+    <details className="rounded-sm border border-tint-stone bg-tint-stone/40 p-4" id={claim.id}>
       <summary className="cursor-pointer">
         <span className="mr-2 inline-block align-middle">
           <StatusTag status={claim.status} />
@@ -123,19 +127,19 @@ function SupersededCard({ claim }: { claim: OperatorClaim }) {
 
 function OfficialRuleCard({ rule }: { rule: OfficialRule }) {
   return (
-    <div className="border border-tint-grey p-4" id={rule.id}>
+    <div className="rounded-sm border border-tint-stone p-4" id={rule.id}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="bg-ink px-2 py-0.5 text-xs font-bold tracking-wide text-white">
+        <span className={`${tag} border border-action bg-action/25 text-ink`}>
           OFFICIAL
         </span>
-        <span className="text-xs text-muted">{rule.id}</span>
+        <span className="text-xs tabular-nums text-muted">{rule.id}</span>
         <FreshnessDot lastVerified={rule.last_verified} />
       </div>
       <p className="mt-2">{rule.claim}</p>
       <p className="mt-1 text-sm text-muted">{sourceLine(rule)}</p>
       {rule.notes && (
         <details className="mt-1 text-sm">
-          <summary className="cursor-pointer text-action">Detail</summary>
+          <summary className="cursor-pointer text-link">Detail</summary>
           <p className="mt-2">{rule.notes}</p>
         </details>
       )}
@@ -189,15 +193,32 @@ export default async function BriefPage() {
           operator-reported, with report counts and freshness. Honest gaps are
           flagged, not papered over.
         </p>
+        <ol className="mt-5 flex list-none flex-wrap items-center gap-2 p-0 text-sm">
+          {LEGS_IN_JOURNEY_ORDER.map((leg, i) => (
+            <li key={leg} className="flex items-center gap-2">
+              {i > 0 && (
+                <span aria-hidden className="text-action">
+                  —
+                </span>
+              )}
+              <a
+                href={`#leg-${leg}`}
+                className="rounded-sm border border-tint-stone px-2 py-0.5 font-bold tabular-nums text-ink hover:border-action hover:bg-tint-amber/40"
+              >
+                {LEG_SHORT[leg]}
+              </a>
+            </li>
+          ))}
+        </ol>
       </div>
 
       {gaps.length > 0 && (
-        <aside className="max-w-prose border-l-4 border-l-tint-amber-ink bg-tint-amber/50 p-4">
+        <aside className={noticeWarn}>
           <h2 className="font-bold">Known gaps — verify next</h2>
           <ul className="mt-1 list-inside list-disc text-sm">
             {gaps.map((claim) => (
               <li key={claim.id}>
-                <a href={`#${claim.id}`} className="text-action underline">
+                <a href={`#${claim.id}`} className={sourceChip}>
                   {claim.id}
                 </a>{" "}
                 — {claim.claim.slice(0, 100)}…
@@ -218,17 +239,17 @@ export default async function BriefPage() {
         const superseded = legClaims.filter((c) => c.status === "superseded");
 
         return (
-          <section key={leg} className="space-y-3">
-            <h2 className="border-b-2 border-ink pb-1 text-2xl font-bold">
+          <section key={leg} id={`leg-${leg}`} className="scroll-mt-24 space-y-3">
+            <h2 className="border-b border-tint-stone pb-1 font-serif text-2xl font-bold">
               {LEG_TITLES[leg]}
             </h2>
 
             {clusters.map((cluster) => (
               <div
                 key={cluster[0].id}
-                className="border-4 border-tint-red-ink p-4"
+                className="rounded-sm border-2 border-tint-oxide-ink p-4"
               >
-                <h3 className="font-bold text-tint-red-ink">
+                <h3 className="font-bold text-tint-oxide-ink">
                   Conflicting reports — verify before travel
                 </h3>
                 <div className="mt-3 grid gap-3 md:grid-cols-2">

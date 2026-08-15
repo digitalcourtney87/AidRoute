@@ -4,12 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { readApiJson } from "@/lib/read-api-json";
 import type { ChecklistItemType, ChecklistLeg } from "@/lib/checklist";
+import { btnPrimary, btnSecondary, noticeError, sourceChip, tag } from "../ui";
 
 const TYPE_BADGES: Record<ChecklistItemType, string> = {
-  do: "bg-tint-green text-tint-green-ink",
-  carry: "bg-tint-blue text-tint-blue-ink",
-  instruct: "bg-ink text-white",
-  verify: "bg-tint-amber text-tint-amber-ink",
+  do: `${tag} bg-tint-teal text-tint-teal-ink`,
+  carry: `${tag} bg-tint-dusk text-tint-dusk-ink`,
+  instruct: `${tag} bg-slate text-cream`,
+  verify: `${tag} bg-tint-amber text-tint-amber-ink`,
 };
 
 export default function ChecklistPage() {
@@ -47,29 +48,27 @@ export default function ChecklistPage() {
         <button
           onClick={generate}
           disabled={busy}
-          className="bg-action px-5 py-2 font-bold text-white shadow-[0_2px_0_#003078] hover:bg-[#003078] disabled:opacity-50"
+          className={btnPrimary}
         >
           {busy ? "Generating checklist…" : "Generate checklist"}
         </button>
       </div>
 
       {error && (
-        <div className="max-w-prose border-l-4 border-l-tint-red-ink bg-tint-red/40 p-4 print:hidden">
-          {error}
-        </div>
+        <div className={`${noticeError} print:hidden`}>{error}</div>
       )}
 
       {legs && (
         <div className="max-w-2xl space-y-8">
           <button
             onClick={() => window.print()}
-            className="border-2 border-ink bg-white px-4 py-1.5 text-sm font-bold hover:bg-tint-grey print:hidden"
+            className={`${btnSecondary} print:hidden`}
           >
             Print checklist
           </button>
           {legs.map((leg) => (
             <section key={leg.leg}>
-              <h2 className="border-b-2 border-ink pb-1 text-2xl font-bold">
+              <h2 className="border-b border-tint-stone pb-1 font-serif text-2xl font-bold">
                 {leg.title || leg.leg}
               </h2>
               <ul className="mt-3 space-y-3">
@@ -82,7 +81,7 @@ export default function ChecklistPage() {
                     />
                     <div className="peer-checked:opacity-60 peer-checked:[&>span:nth-child(2)]:line-through">
                       <span
-                        className={`mr-2 inline-block px-1.5 py-0.5 align-middle text-[11px] font-bold uppercase tracking-wide ${TYPE_BADGES[item.type]}`}
+                        className={`mr-2 inline-block align-middle text-[11px] uppercase ${TYPE_BADGES[item.type]}`}
                       >
                         {item.type}
                       </span>
@@ -92,7 +91,7 @@ export default function ChecklistPage() {
                           <Link
                             key={id}
                             href={`/brief#${id}`}
-                            className="border border-action px-1.5 text-xs text-action hover:bg-tint-blue print:border-muted print:text-muted"
+                            className={sourceChip}
                           >
                             {id}
                           </Link>
@@ -107,7 +106,7 @@ export default function ChecklistPage() {
         </div>
       )}
 
-      <footer className="max-w-prose border-t border-tint-grey pt-3 text-sm text-muted">
+      <footer className="max-w-prose border-t border-tint-stone pt-3 text-sm text-muted">
         Navigation aid, not legal advice. Verify conflicting and stale items
         before travel.
       </footer>

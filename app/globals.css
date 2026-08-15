@@ -1,30 +1,73 @@
 @import "tailwindcss";
 
-/* GOV.UK-inspired, not GOV.UK-branded: near-black text, action blue, generous
-   whitespace, visible focus states. No crown, no GDS Transport. */
+/* Night convoy: slate chrome, cream paper work surface. Never restore
+   GDS tokens #0b0c0c #1d70b8 #003078 #ffdd00 #505a5f. */
 @theme {
-  --color-ink: #0b0c0c;
-  --color-action: #1d70b8;
-  --color-muted: #505a5f;
-  --color-tint-green: #cce2d8;
-  --color-tint-green-ink: #005a30;
-  --color-tint-blue: #d2e2f1;
-  --color-tint-blue-ink: #144e81;
-  --color-tint-red: #f6d7d2;
-  --color-tint-red-ink: #942514;
-  --color-tint-grey: #e8e8e8;
-  --color-tint-grey-ink: #383f43;
-  --color-tint-amber: #fff7bf;
-  --color-tint-amber-ink: #594d00;
+  --color-slate: #161d1a;
+  --color-paper: #f3eee4;
+  --color-ink: #1c1917;
+  --color-cream: #f3eee4;
+  --color-action: #d97706;
+  --color-action-hover: #b45309;
+  --color-muted: #5c564e;
+  --color-muted-slate: #a8b0ab;
+  --color-link: #1a5c54;
+  --color-link-hover: #0f3f3b;
+  --color-tint-teal: #d7e4df;
+  --color-tint-teal-ink: #1a4a44;
+  --color-tint-dusk: #dfe0e8;
+  --color-tint-dusk-ink: #2f3550;
+  --color-tint-oxide: #f0d4c4;
+  --color-tint-oxide-ink: #8a3310;
+  --color-tint-stone: #e6e0d6;
+  --color-tint-stone-ink: #5c564e;
+  --color-tint-amber: #f3e2c0;
+  --color-tint-amber-ink: #7a4a0a;
+}
+
+@theme inline {
+  --font-sans: var(--font-ui), "IBM Plex Sans", ui-sans-serif, sans-serif;
+  --font-serif: var(--font-display), "Source Serif 4", ui-serif, Georgia, serif;
 }
 
 body {
-  background: #ffffff;
-  color: var(--color-ink);
+  background: var(--color-slate);
+  color: var(--color-cream);
+}
+
+h1 {
+  font-family: var(--font-display), "Source Serif 4", ui-serif, Georgia, serif;
 }
 
 :focus-visible {
-  outline: 3px solid #ffdd00;
-  outline-offset: 0;
-  box-shadow: inset 0 0 0 2px var(--color-ink);
+  outline: 3px solid var(--color-action);
+  outline-offset: 2px;
+}
+
+.chrome :focus-visible {
+  outline-color: var(--color-cream);
+}
+
+@media print {
+  body {
+    background: #fff !important;
+    color: var(--color-ink) !important;
+  }
+
+  header {
+    display: none !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .sheet {
+    background: #fff !important;
+    color: var(--color-ink) !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }
