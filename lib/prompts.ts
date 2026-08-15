@@ -1,4 +1,6 @@
-// All prompts verbatim from docs/03-technical-handoff.md §Prompts.
+// Extractor and Ask prompts verbatim from docs/03-technical-handoff.md
+// §Prompts. The checklist prompt diverged when generation went per-leg
+// (docs/adr/0004): one call per leg, each producing a single section.
 // The model may rephrase, never invent — citation validation in the routes
 // enforces the second half of that sentence.
 
@@ -27,13 +29,14 @@ Rules:
   debrief.
 - No preamble, no markdown fences.`;
 
-export const CHECKLIST_PROMPT = `You compose a pre-trip checklist for a humanitarian convoy (GB → France →
-Poland → Ukraine) from the provided claim store. The store contains official
-rules and operator-reported claims, each with an id.
+export const CHECKLIST_LEG_PROMPT = `You compose ONE leg's section of a pre-trip checklist for a humanitarian
+convoy (GB → France → Poland → Ukraine). You will be told which leg, and given
+the claim store filtered to that leg: official rules and operator-reported
+claims, each with an id.
 
-Output ONLY JSON: { "legs": [ { "leg": string, "title": string, "items":
+Output ONLY JSON: { "leg": string, "title": string, "items":
 [ { "text": string, "type": "do"|"carry"|"instruct"|"verify",
-"source_ids": string[] } ] } ] }
+"source_ids": string[] } ] }
 
 Rules:
 - Every item MUST cite at least one source_id from the store. You may rephrase

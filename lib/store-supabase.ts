@@ -7,12 +7,14 @@
 // contention. The merge engine itself never changes between backends.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AskResponse } from "./ask";
+import type { ChecklistLeg } from "./checklist";
 import { mergeClaims } from "./merge";
 import { loadSeed, type StoreState } from "./seed";
 import type { MergeRunResult, StoreBackend } from "./store-backend";
 import { readSupabaseEnv, redactSecrets } from "./supabase-env";
 import type {
   ExtractedClaim,
+  Leg,
   MergeResult,
   OfficialRule,
   OperatorClaim,
@@ -163,6 +165,58 @@ export function createSupabaseBackend(): StoreBackend {
         seed_rules: seed.rules,
       });
       if (error) throw rpcFailure("reset_corridor", error);
+    },
+
+    // Cache reads/writes are best-effort by contract (store-backend.ts): a
+    // failure degrades to a live generation, never a failed request.
+    async getChecklistLeg(
+      fingerprint: string,
+      leg: Leg,
+    ): Promise<ChecklistLeg | null> {
+      try {
+        const { data, error } = await client
+          .from("checklist_cache")
+          .select("section")
+          .eq("store_fingerprint", fingerprint)
+          .eq("leg", leg)
+          .maybeSingle();
+        if (error) {
+          console.error("cache: getChecklistLeg failed:", redactSecrets(error.message));
+          return null;
+        }
+        return data ? (data.section as ChecklistLeg) : null;
+      } catch (err) {
+        console.error("cache: getChecklistLeg failed:", redactSecrets(errorText(err)));
+        return null;
+      }
+    },
+
+    async putChecklistLeg(
+      fingerprint: string,
+      leg: Leg,
+      section: ChecklistLeg,
+    ): Promise<void> {
+      try {
+        const { error } = await client
+          .from("checklist_cache")
+          .upsert({ store_fingerprint: fingerprint, leg, section });
+        if (error) {
+          console.error("cache: putChecklistLeg failed:", redactSecrets(error.message));
+          return;
+        }
+        // Any merge changed the fingerprint, so rows for other fingerprints
+        // can never serve again — prune them to keep the table one store
+        // state big.
+        const { error: pruneError } = await client
+          .from("checklist_cache")
+          .delete()
+          .neq("store_fingerprint", fingerprint);
+        if (pruneError) {
+          console.error("cache: prune failed:", redactSecrets(pruneError.message));
+        }
+      } catch (err) {
+        console.error("cache: putChecklistLeg failed:", redactSecrets(errorText(err)));
+      }
     },
 
     // Trail writes are best-effort by contract (store-backend.ts): a lost
