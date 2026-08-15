@@ -4,7 +4,7 @@
     {
       "name": "aidroute",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": ["start"],
       "port": 3000
     }
   ]

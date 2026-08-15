@@ -3,7 +3,7 @@ import { callClaude, parseModelJson } from "@/lib/anthropic";
 import { validateAsk } from "@/lib/ask";
 import { getCannedAsk } from "@/lib/canned";
 import { ASK_PROMPT } from "@/lib/prompts";
-import { getActiveClaims, getState } from "@/lib/store";
+import { getActiveClaims, getState, logAsk } from "@/lib/store";
 
 // POST { question } → { answer, cited_ids, no_verified_intel }. Grounded in
 // the active store only; ungrounded answers are withheld by validateAsk.
@@ -22,13 +22,15 @@ export async function POST(req: Request) {
     const canned = getCannedAsk(question);
     if (canned) {
       const { answer, cited_ids, no_verified_intel } = canned;
+      await logAsk(question, { answer, cited_ids, no_verified_intel });
       return NextResponse.json({ answer, cited_ids, no_verified_intel, canned: true });
     }
   }
 
-  const active = getActiveClaims();
+  const active = await getActiveClaims();
+  const { rules } = await getState();
   const store = {
-    official_rules: getState().rules,
+    official_rules: rules,
     operator_claims: active.map(
       ({ id, leg, claim, status, last_verified, n_reports, confidence, entities, conflicts_with }) => ({
         id, leg, claim, status, last_verified, n_reports, confidence, entities,
@@ -37,7 +39,7 @@ export async function POST(req: Request) {
     ),
   };
   const validIds = new Set([
-    ...getState().rules.map((r) => r.id),
+    ...rules.map((r) => r.id),
     ...active.map((c) => c.id),
   ]);
 
@@ -49,6 +51,7 @@ export async function POST(req: Request) {
       timeoutMs: 45_000,
     });
     const result = validateAsk(parseModelJson(raw), validIds);
+    await logAsk(question, result);
     return NextResponse.json(result);
   } catch (err) {
     console.error("ask failed:", err);

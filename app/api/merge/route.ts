@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
-import { mergeClaims } from "@/lib/merge";
-import { getState, replaceClaims } from "@/lib/store";
+import { logMergeEvents, runMerge } from "@/lib/store";
 import { validateExtractedClaims } from "@/lib/validate";
 
-// POST { extracted: ExtractedClaim[] } → { log, claims, rules }. No LLM —
-// the deterministic merge engine makes every truth decision.
+// POST { extracted: ExtractedClaim[], debrief_id? } → { log, claims, rules }.
+// No LLM — the deterministic merge engine makes every truth decision. The
+// store backend owns atomicity: on Supabase the merge retries under
+// optimistic versioning so concurrent debriefs can never silently drop
+// each other's claims.
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { extracted?: unknown };
+  const body = (await req.json().catch(() => ({}))) as {
+    extracted?: unknown;
+    debrief_id?: unknown;
+  };
 
   let extracted;
   try {
@@ -18,8 +23,17 @@ export async function POST(req: Request) {
     );
   }
 
-  const { log, claims } = mergeClaims(extracted, getState().claims);
-  replaceClaims(claims);
+  const debriefId = typeof body.debrief_id === "string" ? body.debrief_id : null;
 
-  return NextResponse.json({ log, claims, rules: getState().rules });
+  try {
+    const { log, claims, rules } = await runMerge(extracted);
+    await logMergeEvents(log, debriefId);
+    return NextResponse.json({ log, claims, rules });
+  } catch (err) {
+    console.error("merge failed:", err);
+    return NextResponse.json(
+      { error: "Couldn't apply the merge just now — try again." },
+      { status: 503 },
+    );
+  }
 }

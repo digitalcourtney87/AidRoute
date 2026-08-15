@@ -77,7 +77,12 @@ export default function DebriefPage() {
       const mergeRes = await fetch("/api/merge", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ extracted: extractBody.extracted }),
+        body: JSON.stringify({
+          extracted: extractBody.extracted,
+          // Links the merge events to their capture-trail debrief (persistent
+          // deployments only; null in memory mode).
+          debrief_id: extractBody.debrief_id ?? null,
+        }),
       });
       const mergeBody = await mergeRes.json();
       if (!mergeRes.ok) throw new Error(mergeBody.error ?? "Merge failed");
@@ -91,10 +96,13 @@ export default function DebriefPage() {
   }
 
   async function resetDemo() {
-    await fetch("/api/reset", { method: "POST" });
+    const res = await fetch("/api/reset", { method: "POST" });
     setText("");
     setResult(null);
-    setError(null);
+    // Deployments with a persistent store restrict reset to the admin token.
+    setError(
+      res.ok ? null : "Reset is restricted on this deployment — it reseeds itself nightly.",
+    );
   }
 
   return (

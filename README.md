@@ -6,7 +6,7 @@ A one-day build for the Frontline London Hackathon (Sat 16 Aug 2026 — humanita
 
 **Live demo:** <https://aid-route-g8f7v4462-digitalcourtney87s-projects.vercel.app/>
 
-> The deployed site is fine for browsing the corridor brief and the Ask screen. For the full merge demo, run locally — the claim store is in-memory by design, and serverless instances don't share it between requests.
+> The deployed site runs the full merge demo when its Supabase backend is configured (see **Persistence** below) — state persists and is shared across serverless instances, reseeding nightly. Without that config, deployments fall back to the in-memory store, which serverless instances don't share; the local rehearsed demo always runs in-memory by design.
 
 ## The problem (validated this week)
 
@@ -47,6 +47,24 @@ To enable live extraction of unrehearsed debriefs and free-typed questions:
 cp .env.example .env.local   # then add your ANTHROPIC_API_KEY
 ```
 
+## Persistence (Supabase, optional)
+
+The claim store has two interchangeable backends ([ADR-0002](docs/adr/0002-dual-backend-claim-store.md)):
+
+- **In-memory (default)** — no env vars, no network. This is the offline rehearsed-demo mode and the mode all tests run in. Nothing about the original demo behaviour changes.
+- **Supabase Postgres** — set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` and the store becomes persistent and shared across serverless instances (the deployed merge demo works). Merges are concurrency-safe via optimistic versioning, and a **capture trail** (raw debriefs, merge events, ask logs) is recorded append-only — raw text lives 30 days, then it's gone ([ADR-0001](docs/adr/0001-verbatim-capture-with-retention-window.md)).
+
+One-time setup for a hosted project (EU/UK region):
+
+```bash
+npx supabase login
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push        # applies supabase/migrations/
+npm run db:seed             # seeds from data/seed-data.json (also = full reseed)
+```
+
+On Vercel, additionally set `ADMIN_TOKEN` (protects `/api/reset` — send it as `x-admin-token`) and `CRON_SECRET` (lets the nightly cron in `vercel.json` reseed the sandbox). Locally, leave both unset and reset stays open. All database access is server-side with the service role; RLS is deny-all and no Supabase key ever reaches the browser.
+
 ## Scripts
 
 | Command | What it does |
@@ -57,6 +75,7 @@ cp .env.example .env.local   # then add your ANTHROPIC_API_KEY
 | `npm run demo-check` | Pre-rehearsal gate — hits every route with the demo inputs and asserts canned, schema-valid, oracle-exact responses. Run it before every rehearsal; it passes with no API key |
 | `npm run freeze-fixtures` | Regenerates `data/canned/` from the live routes (needs a running server + API key); `-- --keep-extraction` re-freezes the checklist only, `-- --ask-only` just the three questions |
 | `npm run smoke:extract` | One live extraction round-trip, for checking the API key works |
+| `npm run db:seed` | Seeds/reseeds the Supabase store from `data/seed-data.json` (needs `SUPABASE_*` in `.env.local`; never touches the capture trail) |
 
 If `npm test` errors on a fresh machine, run `npm rebuild esbuild` first (install scripts are blocked by default; only vitest needs it).
 

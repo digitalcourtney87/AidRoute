@@ -1,0 +1,5 @@
+# Supabase CLI project config. Only `project_id` matters for this repo — we
+# use the CLI for `supabase link` + `supabase db push` against the hosted
+# project, never a local Docker stack (the local demo runs in-memory by
+# design; see docs/adr/0002).
+project_id = "aidroute-debrief"

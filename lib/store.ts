@@ -1,76 +1,75 @@
-// In-memory claim store seeded from data/seed-data.json. No database by design:
-// mutations live for the server process only; reset() restores the seed.
-import seedJson from "../data/seed-data.json";
-import type { OfficialRule, OperatorClaim } from "./types";
+// The claim store facade. Two interchangeable backends (docs/adr/0002):
+//
+//   - in-memory (default): the offline rehearsed-demo mode — no env vars, no
+//     network, byte-identical to the original synchronous store
+//   - Supabase: selected when SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are
+//     set — persistent, safe under concurrent merges, with a capture trail
+//
+// Every truth decision still lives in the pure merge engine (lib/merge.ts);
+// backends only load and persist what it returns.
+import type { AskResponse } from "./ask";
+import type { StoreState } from "./seed";
+import type { MergeRunResult, StoreBackend } from "./store-backend";
+import { memoryBackend } from "./store-memory";
+import { createSupabaseBackend } from "./store-supabase";
+import type { ExtractedClaim, MergeResult, OperatorClaim } from "./types";
 
-export interface StoreState {
-  claims: OperatorClaim[];
-  rules: OfficialRule[];
+export type { StoreState } from "./seed";
+export type { MergeRunResult } from "./store-backend";
+
+export const persistent = Boolean(
+  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
+
+const backend: StoreBackend = persistent
+  ? createSupabaseBackend()
+  : memoryBackend;
+
+export function getState(): Promise<StoreState> {
+  return backend.getState();
 }
 
-// The seed file is consumed, never modified. Its entity values are sometimes a
-// bare string (e.g. route_point) where the handoff types say string[] — we
-// normalise to string[] here so the merge engine can rely on one shape.
-type RawEntities = Record<string, string | string[]>;
-
-function normaliseEntities(raw: RawEntities): Record<string, string[]> {
-  const out: Record<string, string[]> = {};
-  for (const [key, value] of Object.entries(raw)) {
-    out[key] = Array.isArray(value) ? value : [value];
-  }
-  return out;
+export function getClaim(id: string): Promise<OperatorClaim | undefined> {
+  return backend.getClaim(id);
 }
 
-function freshState(): StoreState {
-  const seed = seedJson as unknown as {
-    official_rules: OfficialRule[];
-    operator_claims: Array<Omit<OperatorClaim, "entities"> & { entities: RawEntities }>;
-  };
-  return {
-    claims: seed.operator_claims.map((c) => ({
-      ...structuredClone(c),
-      entities: normaliseEntities(c.entities),
-    })),
-    rules: structuredClone(seed.official_rules),
-  };
+export function getActiveClaims(): Promise<OperatorClaim[]> {
+  return backend.getActiveClaims();
 }
 
-let state: StoreState = freshState();
-
-export function getState(): StoreState {
-  return state;
-}
-
-export function getClaim(id: string): OperatorClaim | undefined {
-  return state.claims.find((c) => c.id === id);
-}
-
-// Superseded claims stay in the store for history but are excluded from
-// checklist generation and Ask-the-corridor context.
-export function getActiveClaims(): OperatorClaim[] {
-  return state.claims.filter((c) => c.status !== "superseded");
-}
-
-export function addClaim(claim: OperatorClaim): void {
-  state.claims.push(claim);
+export function addClaim(claim: OperatorClaim): Promise<void> {
+  return backend.addClaim(claim);
 }
 
 export function updateClaim(
   id: string,
   patch: Partial<OperatorClaim>,
-): OperatorClaim | undefined {
-  const claim = getClaim(id);
-  if (!claim) return undefined;
-  Object.assign(claim, patch);
-  return claim;
+): Promise<OperatorClaim | undefined> {
+  return backend.updateClaim(id, patch);
 }
 
-// The merge engine is pure and returns a fresh claims array; the merge route
-// applies it here in one step.
-export function replaceClaims(claims: OperatorClaim[]): void {
-  state.claims = claims;
+export function runMerge(extracted: ExtractedClaim[]): Promise<MergeRunResult> {
+  return backend.runMerge(extracted);
 }
 
-export function reset(): void {
-  state = freshState();
+export function reset(): Promise<void> {
+  return backend.reset();
+}
+
+export function logDebrief(
+  rawText: string,
+  extracted: ExtractedClaim[],
+): Promise<string | null> {
+  return backend.logDebrief(rawText, extracted);
+}
+
+export function logMergeEvents(
+  log: MergeResult,
+  debriefId: string | null,
+): Promise<void> {
+  return backend.logMergeEvents(log, debriefId);
+}
+
+export function logAsk(question: string, response: AskResponse): Promise<void> {
+  return backend.logAsk(question, response);
 }
