@@ -3,7 +3,7 @@ import { callClaude, parseModelJson } from "@/lib/anthropic";
 import { getCannedChecklist } from "@/lib/canned";
 import { validateChecklist } from "@/lib/checklist";
 import { CHECKLIST_PROMPT } from "@/lib/prompts";
-import { getActiveClaims, getState } from "@/lib/store";
+import { getState } from "@/lib/store";
 import type { Leg } from "@/lib/types";
 
 // POST { legs?: Leg[] } → validated checklist. Superseded claims are never
@@ -14,18 +14,22 @@ export async function POST(req: Request) {
     ? (body.legs.filter((l) => typeof l === "string") as Leg[])
     : null;
 
+  const state = await getState();
+
   // The canned checklist serves only when the store is exactly the frozen
   // post-demo-merge state (fingerprint match) and no leg filter is applied.
   if (!requestedLegs && req.headers.get("x-force-live") !== "1") {
-    const canned = getCannedChecklist(getState().claims);
+    const canned = getCannedChecklist(state.claims);
     if (canned) {
       return NextResponse.json({ legs: canned, dropped: 0, canned: true });
     }
   }
 
-  const { rules } = getState();
-  const active = getActiveClaims().filter(
-    (c) => !requestedLegs || requestedLegs.includes(c.leg),
+  const { rules } = state;
+  const active = state.claims.filter(
+    (c) =>
+      c.status !== "superseded" &&
+      (!requestedLegs || requestedLegs.includes(c.leg)),
   );
   const activeRules = rules.filter(
     (r) => !requestedLegs || requestedLegs.includes(r.leg),

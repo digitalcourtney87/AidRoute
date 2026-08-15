@@ -3,11 +3,11 @@
 // curate data/canned/extraction.json until they pass — the rehearsed demo
 // depends on exactly these outcomes.
 import { existsSync, readFileSync } from "node:fs";
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { storeFingerprint } from "@/lib/canned";
 import type { ChecklistLeg } from "@/lib/checklist";
 import { mergeClaims } from "@/lib/merge";
-import { getState, reset } from "@/lib/store";
+import { loadSeed } from "@/lib/seed";
 import type { ExtractedClaim } from "@/lib/types";
 
 function loadFixture<T>(file: string): T {
@@ -25,7 +25,9 @@ const checklist = () =>
     "checklist.json",
   );
 
-beforeEach(() => reset());
+// These tests exercise the pure merge engine against pristine seed state, so
+// they read the seed directly — no store involved.
+const getState = () => loadSeed();
 
 describe("canned extraction vs the seed oracle", () => {
   it("matches the demo debrief input", () => {

@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { mergeClaims } from "@/lib/merge";
-import { getState, reset } from "@/lib/store";
+import { loadSeed } from "@/lib/seed";
 import type { ExtractedClaim, OperatorClaim } from "@/lib/types";
 
 // These fixtures are hand-authored ExtractedClaims representing what
@@ -50,10 +50,10 @@ const NEW_CLAIM: ExtractedClaim = {
   relation_if_match: null,
 };
 
-beforeEach(() => reset());
-
+// Pure-engine tests run against pristine seed state read directly from the
+// seed file — no store involved.
 function seedClaims(): OperatorClaim[] {
-  return getState().claims;
+  return loadSeed().claims;
 }
 
 describe("oracle: expected_merge_outcomes", () => {

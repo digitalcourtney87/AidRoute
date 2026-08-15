@@ -4,8 +4,8 @@ import { getState } from "@/lib/store";
 import type { Leg, OfficialRule, OperatorClaim, Status } from "@/lib/types";
 import { LEGS_IN_JOURNEY_ORDER } from "@/lib/types";
 
-// The brief must always reflect the live in-memory store, never a build-time
-// snapshot — merges from Screen 1 have to show up here immediately.
+// The brief must always reflect the live store (in-memory or Supabase),
+// never a build-time snapshot — merges from Screen 1 show up here immediately.
 export const dynamic = "force-dynamic";
 
 const LEG_TITLES: Record<Leg, string> = {
@@ -167,8 +167,8 @@ function conflictClusters(claims: OperatorClaim[]): OperatorClaim[][] {
   return clusters;
 }
 
-export default function BriefPage() {
-  const { claims, rules } = getState();
+export default async function BriefPage() {
+  const { claims, rules } = await getState();
 
   const gaps = claims.filter(
     (c) =>

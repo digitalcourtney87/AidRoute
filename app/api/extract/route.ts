@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { callClaude, parseModelJson } from "@/lib/anthropic";
 import { getCannedExtraction } from "@/lib/canned";
 import { EXTRACTOR_PROMPT } from "@/lib/prompts";
-import { getActiveClaims } from "@/lib/store";
+import { getActiveClaims, logDebrief } from "@/lib/store";
 import { validateExtractedClaims } from "@/lib/validate";
 
-// POST { text } → { extracted: ExtractedClaim[] }. Canned-fixture fast path
-// for known demo inputs arrives with the demo-reliability ticket.
+// POST { text } → { extracted: ExtractedClaim[], debrief_id }. Canned-fixture
+// fast path for known demo inputs arrives with the demo-reliability ticket.
+// debrief_id is the capture-trail row (null in memory mode); the client
+// passes it back to /api/merge so merge events link to their debrief.
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as { text?: unknown };
   const text = typeof body.text === "string" ? body.text.trim() : "";
@@ -21,10 +23,18 @@ export async function POST(req: Request) {
   // bypasses this with x-force-live to regenerate it.
   if (req.headers.get("x-force-live") !== "1") {
     const canned = getCannedExtraction(text);
-    if (canned) return NextResponse.json({ extracted: canned, canned: true });
+    if (canned) {
+      const debriefId = await logDebrief(text, canned);
+      return NextResponse.json({
+        extracted: canned,
+        canned: true,
+        debrief_id: debriefId,
+      });
+    }
   }
 
-  const summaries = getActiveClaims().map(({ id, leg, claim, entities }) => ({
+  const active = await getActiveClaims();
+  const summaries = active.map(({ id, leg, claim, entities }) => ({
     id,
     leg,
     claim,
@@ -41,7 +51,8 @@ export async function POST(req: Request) {
   try {
     const raw = await callClaude({ system: EXTRACTOR_PROMPT, prompt });
     const extracted = validateExtractedClaims(parseModelJson(raw));
-    return NextResponse.json({ extracted });
+    const debriefId = await logDebrief(text, extracted);
+    return NextResponse.json({ extracted, debrief_id: debriefId });
   } catch (err) {
     console.error("extract failed:", err);
     return NextResponse.json(
