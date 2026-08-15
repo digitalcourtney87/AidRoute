@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaude, parseModelJson } from "@/lib/anthropic";
+import { getCannedExtraction } from "@/lib/canned";
 import { EXTRACTOR_PROMPT } from "@/lib/prompts";
 import { getActiveClaims } from "@/lib/store";
 import { validateExtractedClaims } from "@/lib/validate";
@@ -14,6 +15,13 @@ export async function POST(req: Request) {
       { error: "Paste a debrief first — a few sentences is enough." },
       { status: 400 },
     );
+  }
+
+  // Known demo inputs serve the frozen fixture instantly; the freeze script
+  // bypasses this with x-force-live to regenerate it.
+  if (req.headers.get("x-force-live") !== "1") {
+    const canned = getCannedExtraction(text);
+    if (canned) return NextResponse.json({ extracted: canned, canned: true });
   }
 
   const summaries = getActiveClaims().map(({ id, leg, claim, entities }) => ({

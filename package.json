@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "smoke:extract": "node --env-file-if-exists=.env.local scripts/smoke-extract.ts"
+    "smoke:extract": "node --env-file-if-exists=.env.local scripts/smoke-extract.ts",
+    "freeze-fixtures": "node scripts/freeze-fixtures.ts",
+    "demo-check": "node scripts/demo-check.ts"
   },
   "dependencies": {
     "next": "^15.4.0",

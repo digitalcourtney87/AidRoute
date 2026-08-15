@@ -1,0 +1,161 @@
+{
+  "store_fingerprint": "FR-001:corroborated:2|FR-002:single_report:1|FR-003:single_report:1|GB-001:single_report:1|GB-002:single_report:1|GB-003:single_report:1|PL-001:superseded:1|PL-002:single_report:1|PL-004:conflicting:1|PL-005:single_report:1|PL-006:single_report:1|PL-007:conflicting:1|PL-008:single_report:1|UA-001:single_report:1|UA-002:single_report:1",
+  "legs": [
+    {
+      "leg": "GB_EXIT",
+      "title": "Great Britain Departure",
+      "items": [
+        {
+          "text": "Verify the current HMRC humanitarian-aid easement guidance on the morning of travel: qualifying humanitarian aid goods for Ukraine may leave GB under a simplified process (oral declaration or declaration by conduct, no standard customs declaration or EORI required for goods in smaller vehicles). Carry a written list of all goods.",
+          "type": "verify",
+          "source_ids": [
+            "OFF-GB-001"
+          ]
+        },
+        {
+          "text": "Remove or handle separately any excluded goods before departure — these cannot use the simplified process: controlled goods, prescription-only medicines (not available over the counter without a distribution licence), dual-use goods, excise goods, military goods, and sanctions-related goods.",
+          "type": "do",
+          "source_ids": [
+            "OFF-GB-002"
+          ]
+        },
+        {
+          "text": "For donated medicines: check each item against the UK controlled list. Bin any controlled items. Decline outright any items suspected of being dangerous goods (e.g. oxygen concentrators), noting that the dangerous-goods classification of such items has not been formally confirmed.",
+          "type": "do",
+          "source_ids": [
+            "OFF-GB-002",
+            "GB-003"
+          ]
+        },
+        {
+          "text": "Engage a paid customs intermediary to prepare a T1 transit form and a fully itemised goods list (one line per item) before departure. A single-report operator claim states that since early 2026 the UK–France crossing requires this, and that the T1 evidences goods are transiting the EU without being sold en route.",
+          "type": "carry",
+          "source_ids": [
+            "GB-001"
+          ]
+        },
+        {
+          "text": "Instruct the customs intermediary explicitly to itemise every line on the T1 — do not accept bulk filing (e.g. 'X kg of humanitarian aid'). Intermediaries reportedly default to bulk filing because they charge per line item and will ask the charity what it wants rather than advising; bulk filing has caused vehicles to be stopped at the Polish border.",
+          "type": "instruct",
+          "source_ids": [
+            "FR-001",
+            "FR-002"
+          ]
+        },
+        {
+          "text": "Assemble the driver's document pack. A single-report operator claim lists the following as required for GB exit and EU transit: T1, GMR, Channel Tunnel tickets, vehicle V5C, and additional reference numbers/codes managed via a running email thread with the customs company (some codes rendered by the operator as 'ELO', 'EMD' — exact designations uncertain). Confirm the complete list with your customs intermediary.",
+          "type": "carry",
+          "source_ids": [
+            "GB-002"
+          ]
+        }
+      ]
+    },
+    {
+      "leg": "FR_TRANSIT",
+      "title": "France Transit",
+      "items": [
+        {
+          "text": "Confirm before entering France that the T1 lists every item as a separate line. A corroborated operator claim states that bulk filing triggers a requirement for an additional security certificate (rendered by operators as 'WDS'); vehicles without it have been stopped at the Polish border.",
+          "type": "verify",
+          "source_ids": [
+            "FR-001"
+          ]
+        },
+        {
+          "text": "Note on the 'WDS' certificate: the Polish embassy, when consulted, did not recognise this certificate and advised that a fully itemised list was probably sufficient — which subsequently proved correct in one case. If a 'WDS' is demanded, present the fully itemised T1 and escalate. Confirm the current position with your customs intermediary and the Polish embassy before travel.",
+          "type": "verify",
+          "source_ids": [
+            "FR-001",
+            "FR-003"
+          ]
+        }
+      ]
+    },
+    {
+      "leg": "PL_ENTRY",
+      "title": "Poland Entry (Polish–Ukrainian Border Crossing)",
+      "items": [
+        {
+          "text": "VERIFY BEFORE TRAVEL — Crossing selection: The correct crossing for humanitarian aid vehicles is an unnamed third crossing (name not captured in the claim store — follow up required). Do not rely on general online sources; a single-report operator claim states that each Polish crossing applies different and changing regulations for humanitarian vehicles, and that operative knowledge circulates by word of mouth and is not reliably published online.",
+          "type": "verify",
+          "source_ids": [
+            "PL-002",
+            "PL-004"
+          ]
+        },
+        {
+          "text": "VERIFY BEFORE TRAVEL — Conflicting vehicle weight limit at the unnamed crossing used by this convoy: one operator claim (PL-004, confirmed by a successful crossing in July 2026) states the limit was raised from 3.5 tonnes to 7 tonnes; a second operator claim (PL-007, reported by a border guard on site) states the limit changed from 7 tonnes to 5 tonnes at the start of August 2026. Both claims have medium confidence and a single report each. Confirm the current weight limit with the border authority or a recent convoy operator before travel, and ensure your vehicle complies.",
+          "type": "verify",
+          "source_ids": [
+            "PL-004",
+            "PL-007"
+          ]
+        },
+        {
+          "text": "Obtain and carry the recipient organisation's registration number: Polish border officials are now reportedly requesting this at the Polish crossing (not only on the Ukrainian side), and this requirement was not reflected on previous checklists seen by the operator.",
+          "type": "carry",
+          "source_ids": [
+            "PL-008"
+          ]
+        },
+        {
+          "text": "Email documentation to the Polish border in advance of arrival, as this has been reported as advisable practice.",
+          "type": "do",
+          "source_ids": [
+            "UA-002"
+          ]
+        },
+        {
+          "text": "Ensure the organiser hands the Ukraine-side document pack to drivers at the Polish border (the pack is printed in the UK and physically delivered there). The pack includes the Ukraine declaration, vehicle V5C, and lead driver's passport, among other documents.",
+          "type": "carry",
+          "source_ids": [
+            "UA-002"
+          ]
+        },
+        {
+          "text": "Be aware that smaller humanitarian vehicles use a separate queue from lorries at the Polish border. With correct paperwork, crossing time is reported as around half a day; a missing-certificate incident cost close to a full day.",
+          "type": "instruct",
+          "source_ids": [
+            "PL-006"
+          ]
+        },
+        {
+          "text": "If paperwork problems arise at the border: a border-adjacent customs agency can complete missing paperwork for a fee but is not always reliable (computer system was down on one reported occasion). An escalation path that worked in one case was for the duty manager to telephone the border guard directly, who then allowed the convoy through.",
+          "type": "instruct",
+          "source_ids": [
+            "PL-005"
+          ]
+        }
+      ]
+    },
+    {
+      "leg": "UA_ENTRY",
+      "title": "Ukraine Entry",
+      "items": [
+        {
+          "text": "Verify the current Ukrainian State System for Humanitarian Aid electronic declaration process before travel. Official sources indicate Ukraine operates such a system intended to accelerate humanitarian clearance, with declarations made by the recipient organisation on the Ukrainian side — but this has been sourced from secondary research and not read in primary form.",
+          "type": "verify",
+          "source_ids": [
+            "OFF-UA-001"
+          ]
+        },
+        {
+          "text": "Coordinate with the Ukrainian recipient organisation well in advance: Ukraine-side declarations are made by the recipient, not the UK sender. Provide the recipient with full details of what is being delivered (item details and vehicle information). The process involves a request-letter registration and an acceptance letter at the end — both require active chasing.",
+          "type": "instruct",
+          "source_ids": [
+            "UA-001",
+            "OFF-UA-001"
+          ]
+        },
+        {
+          "text": "Obtain and carry the request letter from the recipient organisation, and chase the acceptance letter upon delivery. Both documents are part of the Ukrainian humanitarian aid declaration process.",
+          "type": "carry",
+          "source_ids": [
+            "UA-001"
+          ]
+        }
+      ]
+    }
+  ]
+}
