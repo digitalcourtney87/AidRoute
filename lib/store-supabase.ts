@@ -65,8 +65,11 @@ export function createSupabaseBackend(): StoreBackend {
       new_claims: claims,
     });
     if (!error) return true;
-    // The RPC raises serialization_failure (40001) on a stale version.
-    if (error.code === "40001" || error.message.includes("version_conflict")) {
+    // The RPC raises a plain application error prefixed 'version_conflict' on
+    // a stale version. (Deliberately NOT SQLSTATE 40001: PostgREST treats
+    // serialization_failure as transient and retries it server-side forever —
+    // the retry belongs in runMerge, not the transport.)
+    if (error.message.includes("version_conflict")) {
       return false;
     }
     throw new Error(`replace_claims failed: ${error.message}`);
