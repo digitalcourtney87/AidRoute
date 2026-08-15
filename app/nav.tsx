@@ -7,6 +7,7 @@ const ITEMS = [
   { href: "/", label: "Debrief a trip" },
   { href: "/brief", label: "Corridor brief" },
   { href: "/checklist", label: "Pre-trip checklist" },
+  { href: "/ask", label: "Ask the corridor" },
 ];
 
 export function Nav() {

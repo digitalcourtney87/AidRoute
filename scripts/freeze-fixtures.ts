@@ -9,11 +9,13 @@
 // if extraction outcomes drift from the oracle, curate extraction.json and
 // re-run with --keep-extraction.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { SUGGESTED_QUESTIONS } from "../lib/ask.ts";
 import { storeFingerprint } from "../lib/canned.ts";
 import type { OperatorClaim } from "../lib/types.ts";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const keepExtraction = process.argv.includes("--keep-extraction");
+const askOnly = process.argv.includes("--ask-only");
 
 async function post<T>(
   route: string,
@@ -40,6 +42,11 @@ const debrief = seed.demo_debrief_2.raw_text;
 mkdirSync("data/canned", { recursive: true });
 
 await post("/api/reset", {});
+
+if (askOnly) {
+  await freezeAsk();
+  process.exit(0);
+}
 
 let extracted;
 if (keepExtraction) {
@@ -87,4 +94,28 @@ writeFileSync(
 console.log("froze checklist.json");
 
 await post("/api/reset", {});
+await freezeAsk();
 console.log("\ndone — now run: npm test (oracle guards in tests/fixtures.test.ts)");
+
+// The three rehearsed questions freeze against the SEED store — the chips
+// must answer identically whether or not the merge demo has run.
+async function freezeAsk() {
+  const answers = [];
+  for (const question of SUGGESTED_QUESTIONS) {
+    console.log(`asking live: ${question}`);
+    const res = await post<{
+      answer: string;
+      cited_ids: string[];
+      no_verified_intel: boolean;
+    }>("/api/ask", { question }, true);
+    answers.push({ question, ...res });
+    console.log(
+      `  → no_verified_intel=${res.no_verified_intel} cites=[${res.cited_ids.join(", ")}]`,
+    );
+  }
+  writeFileSync(
+    "data/canned/ask.json",
+    JSON.stringify({ answers }, null, 2),
+  );
+  console.log("froze ask.json");
+}

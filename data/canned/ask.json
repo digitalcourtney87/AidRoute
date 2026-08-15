@@ -1,0 +1,34 @@
+{
+  "answers": [
+    {
+      "question": "Which Polish crossing should we use?",
+      "answer": "The claim store contains a critical gap here: the specific crossing name was not captured during operator reporting. What is known is this:\n\n1. Multiple crossings exist with different rules. Per operator-reported claim PL-002 (single report, last verified July 2026), crossings such as Medyka and 'Korczowa' (rendering uncertain) each apply different regulations for humanitarian vehicles, and these change over time — with operative knowledge circulating by word of mouth rather than reliable published sources.\n\n2. A third crossing is currently described as the correct one for humanitarian aid vehicles, per operator-reported claim PL-004 (single report, last verified July 2026). It previously had a 3.5-tonne vehicle weight limit, since raised to 7 tonnes, and was confirmed by a successful crossing in July 2026. However, the name of this crossing was NOT captured and is explicitly flagged as needing follow-up verification.\n\n3. Whichever crossing is used, smaller humanitarian vehicles use a separate queue from lorries, with a typical crossing time of around half a day with correct paperwork — per operator-reported claim PL-006 (single report, last verified July 2026).\n\nBottom line: The store cannot tell you which crossing to use by name. The nearest verified intel is PL-004 (operator-reported, 1 report, last verified July 2026), which confirms a currently-preferred crossing exists but did not record its name. You must obtain the crossing name directly from an operator who has run this route recently before departure.",
+      "cited_ids": [
+        "PL-002",
+        "PL-004",
+        "PL-006"
+      ],
+      "no_verified_intel": true
+    },
+    {
+      "question": "Does the T1 need every item listed?",
+      "answer": "Yes — according to operator-reported intelligence (1 report, last verified July 2026), the T1 must list every item as a separate line. Filing a bulk total (such as 'X kg of humanitarian aid') triggers a requirement for an additional security certificate (referred to by the operator as 'WDS'), and without it vehicles are stopped at the Polish border (claim FR-001). A separate operator-reported claim (1 report, last verified July 2026) adds important context: customs intermediaries default to bulk filing because they charge per line item and bulk is cheaper — they will ask the charity what it wants rather than advising correctly, so you must explicitly instruct them to itemise every line (claim FR-002). The Polish embassy, when consulted, did not recognise the 'WDS' certificate and advised that a fully itemised list was probably sufficient — which subsequently proved correct in practice (operator-reported, 1 report, last verified July 2026, claim FR-003). In short: yes, every item must be listed individually on the T1; do not accept bulk filing from your customs intermediary.",
+      "cited_ids": [
+        "FR-001",
+        "FR-002",
+        "FR-003"
+      ],
+      "no_verified_intel": false
+    },
+    {
+      "question": "Can we take donated medicines?",
+      "answer": "Based on the available verified intel, the answer depends on whether the medicines are over-the-counter (OTC) or prescription/controlled:\n\n**1. GB Exit — the key legal rule (official, last verified 14 August 2026):**\nUnder HMRC guidance, medicines that require a licence to distribute (i.e. not freely available over the counter) are explicitly excluded from the simplified humanitarian aid export process and cannot travel under it (OFF-GB-002). OTC medicines are not excluded and can use the simplified process (OFF-GB-001).\n\n**2. Practical operator procedure at GB exit (operator-reported, 1 report, last verified July 2026):**\nThe working practice used by at least one operator is: check every donated medicine against the UK controlled drugs list. Anything on the controlled list is binned before departure. Non-controlled medicines are allowed to travel. Items suspected of being dangerous goods (e.g. oxygen concentrators) are declined outright, though the operator noted uncertainty about whether that classification is always correct (GB-003).\n\n**In plain terms:** Donated OTC, non-controlled medicines can travel. Prescription-only or controlled medicines cannot travel under the humanitarian aid easement and are removed before departure. If in doubt about a specific medicine, check it against the UK controlled drugs list before loading.\n\n**Important caveats:**\n- The official HMRC guidance (OFF-GB-001, OFF-GB-002) should be re-read on the morning of departure, as it is framed as an easement and could change.\n- There is no verified intel in this store covering whether Poland or Ukraine impose additional restrictions on medicines at their borders. That is a gap you should verify separately before travel.",
+      "cited_ids": [
+        "OFF-GB-001",
+        "OFF-GB-002",
+        "GB-003"
+      ],
+      "no_verified_intel": false
+    }
+  ]
+}
