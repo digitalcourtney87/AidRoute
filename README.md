@@ -4,7 +4,7 @@
 
 A one-day build for the Frontline London Hackathon (Sat 16 Aug 2026 — humanitarian / civic resilience track).
 
-**Live demo:** <https://aid-route-g8f7v4462-digitalcourtney87s-projects.vercel.app/>
+**Live demo:** <https://www.aidroute.org/>
 
 > The deployed site runs the full merge demo when its Supabase backend is configured (see **Persistence** below) — state persists and is shared across serverless instances, reseeding nightly. Without that config, deployments fall back to the in-memory store, which serverless instances don't share; the local rehearsed demo always runs in-memory by design.
 
