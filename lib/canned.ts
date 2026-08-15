@@ -42,6 +42,26 @@ export function getCannedExtraction(text: string): ExtractedClaim[] | null {
     : null;
 }
 
+interface AskFixture {
+  answers: Array<{
+    question: string;
+    answer: string;
+    cited_ids: string[];
+    no_verified_intel: boolean;
+  }>;
+}
+
+// Ask fixtures match on the exact (trimmed, case-insensitive) question — the
+// three suggested chips send these verbatim. Store-state independent.
+export function getCannedAsk(question: string) {
+  const fixture = loadJson<AskFixture>("ask.json");
+  if (!fixture) return null;
+  const q = question.trim().toLowerCase();
+  return (
+    fixture.answers.find((a) => a.question.trim().toLowerCase() === q) ?? null
+  );
+}
+
 export function getCannedChecklist(
   claims: OperatorClaim[],
 ): ChecklistLeg[] | null {

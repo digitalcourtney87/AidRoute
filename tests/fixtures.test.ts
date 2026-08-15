@@ -77,6 +77,34 @@ describe("canned checklist", () => {
     }
   });
 
+  it("freezes all three suggested questions, grounded or honestly empty", () => {
+    const fixture = loadFixture<{
+      answers: Array<{
+        question: string;
+        answer: string;
+        cited_ids: string[];
+        no_verified_intel: boolean;
+      }>;
+    }>("ask.json");
+    const validIds = new Set([
+      ...getState().rules.map((r) => r.id),
+      ...getState().claims.map((c) => c.id),
+    ]);
+    expect(fixture.answers.map((a) => a.question)).toEqual([
+      "Which Polish crossing should we use?",
+      "Does the T1 need every item listed?",
+      "Can we take donated medicines?",
+    ]);
+    for (const entry of fixture.answers) {
+      if (!entry.no_verified_intel) {
+        expect(entry.cited_ids.length).toBeGreaterThan(0);
+      }
+      for (const id of entry.cited_ids) {
+        expect(validIds.has(id), `${id} not in store`).toBe(true);
+      }
+    }
+  });
+
   it("presents the PL-004 conflict as a verify item citing both accounts", () => {
     const { claims } = mergeClaims(extraction().extracted, getState().claims);
     const partner = claims.find((c) => c.id === "PL-004")?.conflicts_with?.[0];

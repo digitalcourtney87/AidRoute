@@ -74,6 +74,31 @@ check(
   `canned=${cl.json.canned} ${cl.ms}ms`,
 );
 
+// ask — all three suggested questions must be canned and schema-valid
+try {
+  const askFixture = JSON.parse(readFileSync("data/canned/ask.json", "utf8")) as {
+    answers: Array<{ question: string }>;
+  };
+  for (const { question } of askFixture.answers) {
+    const ans = await post<{
+      answer?: string;
+      cited_ids?: string[];
+      no_verified_intel?: boolean;
+      canned?: boolean;
+    }>("/api/ask", { question });
+    const grounded =
+      ans.json.no_verified_intel === true ||
+      (Array.isArray(ans.json.cited_ids) && ans.json.cited_ids.length > 0);
+    check(
+      `POST /api/ask (canned) — "${question.slice(0, 40)}"`,
+      ans.status === 200 && ans.json.canned === true && typeof ans.json.answer === "string" && grounded,
+      `canned=${ans.json.canned} ${ans.ms}ms`,
+    );
+  }
+} catch {
+  check("ask fixtures present", false, "data/canned/ask.json missing");
+}
+
 // reset restores
 const reset2 = await post<{ ok: boolean; claims: number }>("/api/reset", {});
 check("POST /api/reset (restore)", reset2.status === 200 && reset2.json.claims === 13);
