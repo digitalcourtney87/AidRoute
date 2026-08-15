@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "smoke:extract": "node --env-file-if-exists=.env.local scripts/smoke-extract.ts"
   },
   "dependencies": {
     "next": "^15.4.0",
