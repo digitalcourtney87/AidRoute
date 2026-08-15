@@ -61,6 +61,12 @@ export default function ChecklistPage() {
 
       {legs && (
         <div className="max-w-2xl space-y-8">
+          <button
+            onClick={() => window.print()}
+            className="border-2 border-ink bg-white px-4 py-1.5 text-sm font-bold hover:bg-tint-grey print:hidden"
+          >
+            Print checklist
+          </button>
           {legs.map((leg) => (
             <section key={leg.leg}>
               <h2 className="border-b-2 border-ink pb-1 text-2xl font-bold">
@@ -71,10 +77,10 @@ export default function ChecklistPage() {
                   <li key={i} className="flex items-start gap-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-5 w-5 shrink-0 accent-action"
+                      className="peer mt-1 h-5 w-5 shrink-0 accent-action"
                       aria-label={`done: ${item.text}`}
                     />
-                    <div>
+                    <div className="peer-checked:opacity-60 peer-checked:[&>span:nth-child(2)]:line-through">
                       <span
                         className={`mr-2 inline-block px-1.5 py-0.5 align-middle text-[11px] font-bold uppercase tracking-wide ${TYPE_BADGES[item.type]}`}
                       >
