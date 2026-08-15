@@ -92,6 +92,12 @@ export async function callClaude({
     if (err instanceof Error && err.name === "AbortError") {
       throw new Error(`Claude API call timed out after ${timeoutMs / 1000}s`);
     }
+    // Transport-level failures (DNS, TLS, connection reset, invalid header
+    // value from a malformed key) must classify as Claude failures in
+    // store-errors.ts, not fall through to the routes' user-blaming fallbacks.
+    if (err instanceof Error && !err.message.startsWith("Claude API")) {
+      throw new Error(`Claude API request failed: ${err.message}`);
+    }
     throw err;
   } finally {
     clearTimeout(timer);

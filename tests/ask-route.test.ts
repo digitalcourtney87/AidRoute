@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getActiveClaims, logAsk } from "@/lib/store";
+import { getActiveClaims, getState, logAsk } from "@/lib/store";
+import { callClaude } from "@/lib/anthropic";
 import { POST } from "@/app/api/ask/route";
 
 vi.mock("@/lib/store", () => ({
@@ -45,5 +46,20 @@ describe("POST /api/ask", () => {
     const body = await res.json();
     expect(body.canned).toBe(true);
     expect(getActiveClaims).not.toHaveBeenCalled();
+  });
+
+  it("returns the AI-outage copy when the Claude call fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(getActiveClaims).mockResolvedValue([]);
+    vi.mocked(getState).mockResolvedValue({ claims: [], rules: [] } as never);
+    vi.mocked(callClaude).mockRejectedValue(
+      new Error("Claude API 401: authentication_error"),
+    );
+
+    const res = await POST(post("Unrehearsed question about a crossing?"));
+
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body.error).toMatch(/AI service is unavailable/i);
   });
 });
