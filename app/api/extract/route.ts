@@ -33,22 +33,24 @@ export async function POST(req: Request) {
     }
   }
 
-  const active = await getActiveClaims();
-  const summaries = active.map(({ id, leg, claim, entities }) => ({
-    id,
-    leg,
-    claim,
-    entities,
-  }));
-  const prompt = [
-    "DEBRIEF TEXT:",
-    text,
-    "",
-    "EXISTING CLAIMS:",
-    JSON.stringify(summaries, null, 2),
-  ].join("\n");
-
+  // The store read lives inside the try: a misconfigured backend must surface
+  // as this route's JSON error, not an unhandled rejection (raw Next 500).
   try {
+    const active = await getActiveClaims();
+    const summaries = active.map(({ id, leg, claim, entities }) => ({
+      id,
+      leg,
+      claim,
+      entities,
+    }));
+    const prompt = [
+      "DEBRIEF TEXT:",
+      text,
+      "",
+      "EXISTING CLAIMS:",
+      JSON.stringify(summaries, null, 2),
+    ].join("\n");
+
     const raw = await callClaude({ system: EXTRACTOR_PROMPT, prompt });
     const extracted = validateExtractedClaims(parseModelJson(raw));
     const debriefId = await logDebrief(text, extracted);
