@@ -27,7 +27,10 @@ const extractedFixture: ExtractedClaim = {
   relation_if_match: null,
 };
 
-describe.skipIf(!hasEnv)("supabase backend (integration)", () => {
+// Remote round trips dominate — the concurrency test alone chains ~10 of
+// them (reset, two loads, two replaces, loser's retry), so the vitest
+// default of 5s is far too tight against a remote region.
+describe.skipIf(!hasEnv)("supabase backend (integration)", { timeout: 30_000 }, () => {
   const backend = hasEnv ? createSupabaseBackend() : null!;
 
   afterAll(async () => {
