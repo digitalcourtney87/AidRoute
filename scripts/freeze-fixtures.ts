@@ -81,7 +81,10 @@ for (const entry of merged.log) {
   console.log(`  ${entry.action}:${entry.targetId ?? "new"}`);
 }
 
-console.log("\ngenerating checklist live (can take ~60s)…");
+// One full-corridor generation freezes all four leg sections — the route
+// generates per-leg in parallel, and canned lookups are per-leg too, so any
+// Journey Span serves from this single fixture.
+console.log("\ngenerating checklist live (per-leg, in parallel)…");
 const cl = await post<{ legs: unknown[] }>("/api/checklist", {}, true);
 writeFileSync(
   "data/canned/checklist.json",

@@ -22,6 +22,10 @@ _Avoid_: route, region
 One of the four fixed journey stages of a corridor (GB exit, FR transit, PL entry, UA entry) that every claim and rule is pinned to.
 _Avoid_: stage, segment
 
+**Journey Span**:
+The operator-declared extent of one trip — a start point and destination that select a contiguous run of the corridor's legs. Starting inside a country skips that country's entry leg; a span that selects no legs is invalid.
+_Avoid_: route, itinerary
+
 **Freshness**:
 How recently a claim was last verified, decaying over time; drives the brief's visual confidence cues.
 _Avoid_: recency, age

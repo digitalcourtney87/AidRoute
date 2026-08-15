@@ -5,7 +5,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { ChecklistLeg } from "./checklist";
-import type { ExtractedClaim, OperatorClaim } from "./types";
+import type { ExtractedClaim, Leg, OperatorClaim } from "./types";
 
 const CANNED_DIR = path.join(process.cwd(), "data", "canned");
 
@@ -62,12 +62,16 @@ export function getCannedAsk(question: string) {
   );
 }
 
-export function getCannedChecklist(
+// Per-leg lookup into the frozen full-corridor checklist: any Journey Span
+// assembles from these sections, so narrow spans stay on the pre-verified
+// instant path too. Same fingerprint gate as before — the fixture only
+// serves against the exact post-demo-merge store it was frozen from.
+export function getCannedChecklistLeg(
   claims: OperatorClaim[],
-): ChecklistLeg[] | null {
+  leg: Leg,
+): ChecklistLeg | null {
   const fixture = loadJson<ChecklistFixture>("checklist.json");
   if (!fixture) return null;
-  return storeFingerprint(claims) === fixture.store_fingerprint
-    ? fixture.legs
-    : null;
+  if (storeFingerprint(claims) !== fixture.store_fingerprint) return null;
+  return fixture.legs.find((l) => l.leg === leg) ?? null;
 }
