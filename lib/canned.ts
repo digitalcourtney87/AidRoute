@@ -42,6 +42,26 @@ export function getCannedExtraction(text: string): ExtractedClaim[] | null {
     : null;
 }
 
+// Does this extraction payload identify the rehearsed sample? Compared on the
+// fields that pin a claim's identity rather than deep equality, so the check
+// survives the validator's normalisation of the rest. The only consequence of
+// a match is a reset to seed before merging (docs/adr/0005 T4), and in demo
+// mode nothing else can have mutated the store — so being generous here costs
+// nothing and being brittle would break the guided path.
+export function isCannedExtraction(extracted: ExtractedClaim[]): boolean {
+  const fixture = loadJson<ExtractionFixture>("extraction.json");
+  if (!fixture || extracted.length !== fixture.extracted.length) return false;
+  return fixture.extracted.every((want, i) => {
+    const got = extracted[i];
+    return (
+      got.claim.trim() === want.claim.trim() &&
+      got.leg === want.leg &&
+      got.date_observed === want.date_observed &&
+      (got.matches_existing_id ?? null) === (want.matches_existing_id ?? null)
+    );
+  });
+}
+
 interface AskFixture {
   answers: Array<{
     question: string;
