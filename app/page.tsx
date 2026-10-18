@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { SAMPLE_DEBRIEF } from "@/lib/demo-sample";
 import { appendTranscript } from "@/lib/dictation";
 import { readApiJson } from "@/lib/read-api-json";
 import type { MergeLogEntry, OperatorClaim } from "@/lib/types";
 import { useDictation } from "./use-dictation";
-import { btnGhost, btnPrimary, noticeError } from "./ui";
+import { btnGhost, btnPrimary, btnSecondary, noticeError } from "./ui";
 
 interface MergeResponse {
   log: MergeLogEntry[];
@@ -103,6 +104,15 @@ export default function DebriefPage() {
     }
   }
 
+  // The rehearsed scenario is the path that works (docs/adr/0005), and a
+  // visitor has no way to guess the text — so hand it to them.
+  function loadSample() {
+    dictation.stop();
+    setError(null);
+    setResult(null);
+    setText(SAMPLE_DEBRIEF);
+  }
+
   async function resetDemo() {
     dictation.stop();
     const res = await fetch("/api/reset", { method: "POST" });
@@ -125,6 +135,10 @@ export default function DebriefPage() {
       <p className="max-w-prose text-muted">
         Just back from a run? Five minutes here makes the next convoy&apos;s
         checklist better.
+      </p>
+      <p className="max-w-prose text-sm text-muted">
+        This is a public demo of one rehearsed scenario — load the sample
+        debrief to walk it end to end.
       </p>
 
       {/* While listening the box shows the in-flight interim guess and the
@@ -150,6 +164,13 @@ export default function DebriefPage() {
           className={btnPrimary}
         >
           {busy ? "Extracting intel…" : "Extract intel"}
+        </button>
+        <button
+          onClick={loadSample}
+          disabled={busy || dictation.listening}
+          className={btnSecondary}
+        >
+          Use the sample debrief
         </button>
         {dictation.supported && (
           <button
