@@ -5,12 +5,15 @@ import Link from "next/link";
 import { readApiJson } from "@/lib/read-api-json";
 import type { AskResponse } from "@/lib/ask";
 import { SUGGESTED_QUESTIONS } from "@/lib/ask";
-import { btnPrimary, field, noticeError, noticeWarn, sourceChip } from "../ui";
+import { btnPrimary, field, noticeError, noticeInfo, noticeWarn, sourceChip } from "../ui";
 
 export default function AskPage() {
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Free-typed questions are switched off in the public demo — a neutral
+  // notice pointing at the chips, not an error (docs/adr/0005).
+  const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<AskResponse | null>(null);
 
   async function ask(q: string) {
@@ -18,6 +21,7 @@ export default function AskPage() {
     setQuestion(q);
     setBusy(true);
     setError(null);
+    setNotice(null);
     setResult(null);
     try {
       const res = await fetch("/api/ask", {
@@ -25,8 +29,17 @@ export default function AskPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question: q }),
       });
-      const body = await readApiJson<AskResponse>(res);
-      setResult(body);
+      const body = await readApiJson<
+        Partial<AskResponse> & { demo_only?: boolean; message?: string }
+      >(res);
+      if (body.demo_only) {
+        setNotice(
+          body.message ??
+            "Free-typed questions are switched off in this public demo. Try one of the suggested questions.",
+        );
+        return;
+      }
+      setResult(body as AskResponse);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -76,6 +89,8 @@ export default function AskPage() {
       {error && (
         <div className={noticeError}>{error}</div>
       )}
+
+      {notice && <div className={noticeInfo}>{notice}</div>}
 
       {result &&
         (result.no_verified_intel ? (

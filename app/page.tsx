@@ -7,7 +7,7 @@ import { appendTranscript } from "@/lib/dictation";
 import { readApiJson } from "@/lib/read-api-json";
 import type { MergeLogEntry, OperatorClaim } from "@/lib/types";
 import { useDictation } from "./use-dictation";
-import { btnGhost, btnPrimary, btnSecondary, noticeError } from "./ui";
+import { btnGhost, btnPrimary, btnSecondary, noticeError, noticeInfo } from "./ui";
 
 interface MergeResponse {
   log: MergeLogEntry[];
@@ -64,6 +64,9 @@ export default function DebriefPage() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Demo-mode notice: unrehearsed text has nowhere to go, which is a
+  // configuration fact rather than a failure — never the red error style.
+  const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResponse | null>(null);
   const dictation = useDictation((chunk) =>
     setText((current) => appendTranscript(current, chunk)),
@@ -72,6 +75,7 @@ export default function DebriefPage() {
   async function extractIntel() {
     setBusy(true);
     setError(null);
+    setNotice(null);
     setResult(null);
     try {
       const extractRes = await fetch("/api/extract", {
@@ -80,9 +84,21 @@ export default function DebriefPage() {
         body: JSON.stringify({ text }),
       });
       const extractBody = await readApiJson<{
-        extracted: unknown;
+        extracted?: unknown;
         debrief_id?: string | null;
+        demo_only?: boolean;
+        message?: string;
       }>(extractRes);
+
+      // Nothing was extracted and nothing was stored — show the way back to
+      // the rehearsed path instead of merging an empty extraction.
+      if (extractBody.demo_only) {
+        setNotice(
+          extractBody.message ??
+            "This public demo runs one rehearsed scenario — load the sample debrief to see it.",
+        );
+        return;
+      }
 
       const mergeRes = await fetch("/api/merge", {
         method: "POST",
@@ -109,6 +125,7 @@ export default function DebriefPage() {
   function loadSample() {
     dictation.stop();
     setError(null);
+    setNotice(null);
     setResult(null);
     setText(SAMPLE_DEBRIEF);
   }
@@ -117,6 +134,7 @@ export default function DebriefPage() {
     dictation.stop();
     const res = await fetch("/api/reset", { method: "POST" });
     setText("");
+    setNotice(null);
     setResult(null);
     // Deployments with a persistent store restrict reset to the admin token.
     setError(
@@ -206,6 +224,15 @@ export default function DebriefPage() {
 
       {error && (
         <div className={noticeError}>{error}</div>
+      )}
+
+      {notice && (
+        <div className={noticeInfo}>
+          <p>{notice}</p>
+          <button onClick={loadSample} className={`${btnSecondary} mt-3`}>
+            Load the sample debrief
+          </button>
+        </div>
       )}
 
       {result && (

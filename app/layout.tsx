@@ -75,6 +75,12 @@ export default function RootLayout({
             {children}
           </div>
         </main>
+        {/* Standing disclosure: a visitor should never have to wonder whether
+            what they are reading is real intel (docs/adr/0005). */}
+        <footer className="mx-auto max-w-4xl px-4 pb-8 text-sm text-muted-slate print:hidden">
+          Public demo · rehearsed scenario · anonymised and fictional data ·
+          resets nightly.
+        </footer>
       </body>
     </html>
   );

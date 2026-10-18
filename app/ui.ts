@@ -15,6 +15,11 @@ export const field =
 export const noticeError =
   "max-w-prose rounded-sm border-l-4 border-l-tint-oxide-ink bg-tint-oxide/50 p-4";
 
+// Neutral, not alarming: the demo-only notices are the product behaving as
+// configured, not something going wrong (docs/adr/0005).
+export const noticeInfo =
+  "max-w-prose rounded-sm border-l-4 border-l-tint-dusk-ink bg-tint-dusk/50 p-4";
+
 export const noticeWarn =
   "max-w-prose rounded-sm border-l-4 border-l-tint-amber-ink bg-tint-amber/50 p-4";
 
