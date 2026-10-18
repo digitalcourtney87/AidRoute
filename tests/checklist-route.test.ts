@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { callClaude } from "@/lib/anthropic";
+import { LiveLlmUnavailableError, callClaude } from "@/lib/anthropic";
 import { getChecklistLeg, getState, putChecklistLeg } from "@/lib/store";
 import { POST } from "@/app/api/checklist/route";
 import type { OfficialRule, OperatorClaim } from "@/lib/types";
@@ -137,6 +137,22 @@ describe("POST /api/checklist", () => {
     expect(res.status).toBe(200);
     expect(callClaude).not.toHaveBeenCalled();
     expect(body.legs[0].gap).toBe(true);
+    expect(body.legs[0].items).toEqual([]);
+    expect(putChecklistLeg).not.toHaveBeenCalled();
+  });
+
+  it("degrades that leg to a demo-only section when the key is rejected", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(getState).mockResolvedValue({ claims: [CLAIM], rules: [RULE] });
+    vi.mocked(callClaude).mockRejectedValue(
+      new LiveLlmUnavailableError("Claude API 401: authentication_error"),
+    );
+
+    const res = await POST(post({ legs: ["UA_ENTRY"] }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.legs[0].demo_only).toBe(true);
     expect(body.legs[0].items).toEqual([]);
     expect(putChecklistLeg).not.toHaveBeenCalled();
   });

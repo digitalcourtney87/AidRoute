@@ -6,6 +6,8 @@ A one-day build for the Frontline London Hackathon (Sat 16 Aug 2026 — humanita
 
 **Live demo:** <https://www.aidroute.org/>
 
+> **The public site is a guided demo of one rehearsed scenario** ([ADR-0005](docs/adr/0005-public-deployment-scripted-demo-only.md)): it holds no API key and makes no live model calls. Load the sample debrief on the home page and walk it — debrief → corridor brief → checklist → the three suggested questions. Free-typed debriefs and questions answer with a neutral "switched off in this public demo" notice instead, and live extraction remains available locally (see **Quick start**).
+>
 > The deployed site runs the full merge demo when its Supabase backend is configured (see **Persistence** below) — state persists and is shared across serverless instances, reseeding nightly. Without that config, deployments fall back to the in-memory store, which serverless instances don't share; the local rehearsed demo always runs in-memory by design.
 
 ## The problem (validated this week)
@@ -39,13 +41,20 @@ npm run build
 npm start
 ```
 
-Open <http://localhost:3000>. The rehearsed demo path — pasting the demo debrief from `data/seed-data.json`, generating the default checklist, and the three suggested Ask questions — is served from frozen fixtures in `data/canned/` and **works entirely offline, no API key required**.
+Open <http://localhost:3000>. The rehearsed demo path — **Use the sample debrief** on the home page, then the default checklist and the three suggested Ask questions — is served from frozen fixtures in `data/canned/` and **works entirely offline, no API key required**. This is also the mode the public deployment runs in.
 
-To enable live extraction of unrehearsed debriefs and free-typed questions:
+Live extraction of unrehearsed debriefs and free-typed questions takes two env
+vars, not one ([ADR-0005](docs/adr/0005-public-deployment-scripted-demo-only.md)):
 
 ```bash
-cp .env.example .env.local   # then add your ANTHROPIC_API_KEY
+cp .env.example .env.local   # then set AIDROUTE_LIVE_LLM=on and ANTHROPIC_API_KEY
 ```
+
+The flag is deliberately separate from the key, so adding a key to a
+deployment cannot by itself reopen spend. With either one missing, unrehearsed
+input gets the neutral demo-only notice and nothing reaches the model —
+including requests sending `x-force-live: 1`, which `npm run freeze-fixtures`
+and `npm run smoke:extract` need, so both of those need live mode on too.
 
 ## Persistence (Supabase, optional)
 
@@ -63,7 +72,7 @@ npx supabase db push        # applies supabase/migrations/
 npm run db:seed             # seeds from data/seed-data.json (also = full reseed)
 ```
 
-On Vercel, additionally set `ADMIN_TOKEN` (protects `/api/reset` — send it as `x-admin-token`) and `CRON_SECRET` (lets the nightly cron in `vercel.json` reseed the sandbox). Locally, leave both unset and reset stays open. All database access is server-side with the service role; RLS is deny-all and no Supabase key ever reaches the browser. Paste `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` once each, on a single line — extra newlines make the Authorization header invalid and take every live store path down.
+On Vercel, additionally set `ADMIN_TOKEN` (protects `/api/reset` — send it as `x-admin-token`) and `CRON_SECRET` (lets the nightly cron in `vercel.json` reseed the sandbox). Locally, leave both unset and reset stays open. Leave `ANTHROPIC_API_KEY` and `AIDROUTE_LIVE_LLM` **unset on every environment** — that is what keeps the deployment a scripted demo with no running cost ([ADR-0005](docs/adr/0005-public-deployment-scripted-demo-only.md)). All database access is server-side with the service role; RLS is deny-all and no Supabase key ever reaches the browser. Paste `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` once each, on a single line — extra newlines make the Authorization header invalid and take every live store path down.
 
 ## Scripts
 
@@ -72,9 +81,9 @@ On Vercel, additionally set `ADMIN_TOKEN` (protects `/api/reset` — send it as 
 | `npm start` | Production server — **use this for the demo**, not `npm run dev` (dev-mode module reloading can reset the in-memory store and bypass the instant canned path) |
 | `npm run dev` | Dev server with hot reload, for development only |
 | `npm test` | Unit tests: merge-engine rules against the seed file's oracle, citation validators, fixture guards, store-env sanitisation |
-| `npm run demo-check` | Pre-rehearsal gate — hits every route with the demo inputs and asserts canned, schema-valid, oracle-exact responses. Run it before every rehearsal; it passes with no API key |
-| `npm run freeze-fixtures` | Regenerates `data/canned/` from the live routes (needs a running server + API key); `-- --keep-extraction` re-freezes the checklist only, `-- --ask-only` just the three questions |
-| `npm run smoke:extract` | One live extraction round-trip, for checking the API key works |
+| `npm run demo-check` | Pre-rehearsal gate — hits every route with the demo inputs and asserts canned, schema-valid, oracle-exact responses, plus the scripted-demo contract (free-typed input → `demo_only` at 200; the guided path run twice over). Run it before every rehearsal; it passes with no API key. Against a deployment: `BASE_URL=https://www.aidroute.org ADMIN_TOKEN=… npm run demo-check` |
+| `npm run freeze-fixtures` | Regenerates `data/canned/` from the live routes (needs a running server with `AIDROUTE_LIVE_LLM=on` + API key); `-- --keep-extraction` re-freezes the checklist only, `-- --ask-only` just the three questions |
+| `npm run smoke:extract` | One live extraction round-trip, for checking the API key works (needs `AIDROUTE_LIVE_LLM=on` + the key) |
 | `npm run db:seed` | Seeds/reseeds the Supabase store from `data/seed-data.json` (needs `SUPABASE_*` in `.env.local`; never touches the capture trail) |
 
 If `npm test` errors on a fresh machine, run `npm rebuild esbuild` first (install scripts are blocked by default; only vitest needs it).
@@ -88,10 +97,11 @@ If `npm test` errors on a fresh machine, run `npm rebuild esbuild` first (instal
 | `data/seed-data.json` | Anonymised seed claims from the interview + official rules + a clearly-marked fictional second debrief that drives the merge demo |
 | `data/canned/` | Frozen demo fixtures, curated to the seed file's expected outcomes and pinned by tests |
 | `scripts/` | Fixture freezing, demo-check, smoke test |
-| `tests/` | Vitest suite (55 tests) |
+| `tests/` | Vitest suite (129 tests) |
 | `docs/01-background-plan-v2.md` | The pre-interview plan (superseded) — kept for context on how validation changed the product |
 | `docs/02-pivot-plan-v3.md` | Current concept, interview findings, demo script, judge Q&A |
 | `docs/03-technical-handoff.md` | The implementation spec this build was executed from |
+| `docs/adr/` | Architecture decision records — including [ADR-0005](docs/adr/0005-public-deployment-scripted-demo-only.md), why the public deployment is a scripted demo |
 
 ## Principles (non-negotiable)
 

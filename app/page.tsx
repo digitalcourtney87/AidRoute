@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { SAMPLE_DEBRIEF } from "@/lib/demo-sample";
 import { appendTranscript } from "@/lib/dictation";
 import { readApiJson } from "@/lib/read-api-json";
 import type { MergeLogEntry, OperatorClaim } from "@/lib/types";
 import { useDictation } from "./use-dictation";
-import { btnGhost, btnPrimary, noticeError } from "./ui";
+import { btnGhost, btnPrimary, btnSecondary, noticeError, noticeInfo } from "./ui";
 
 interface MergeResponse {
   log: MergeLogEntry[];
@@ -63,6 +64,9 @@ export default function DebriefPage() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Demo-mode notice: unrehearsed text has nowhere to go, which is a
+  // configuration fact rather than a failure — never the red error style.
+  const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResponse | null>(null);
   const dictation = useDictation((chunk) =>
     setText((current) => appendTranscript(current, chunk)),
@@ -71,6 +75,7 @@ export default function DebriefPage() {
   async function extractIntel() {
     setBusy(true);
     setError(null);
+    setNotice(null);
     setResult(null);
     try {
       const extractRes = await fetch("/api/extract", {
@@ -79,9 +84,21 @@ export default function DebriefPage() {
         body: JSON.stringify({ text }),
       });
       const extractBody = await readApiJson<{
-        extracted: unknown;
+        extracted?: unknown;
         debrief_id?: string | null;
+        demo_only?: boolean;
+        message?: string;
       }>(extractRes);
+
+      // Nothing was extracted and nothing was stored — show the way back to
+      // the rehearsed path instead of merging an empty extraction.
+      if (extractBody.demo_only) {
+        setNotice(
+          extractBody.message ??
+            "This public demo runs one rehearsed scenario — load the sample debrief to see it.",
+        );
+        return;
+      }
 
       const mergeRes = await fetch("/api/merge", {
         method: "POST",
@@ -103,10 +120,21 @@ export default function DebriefPage() {
     }
   }
 
+  // The rehearsed scenario is the path that works (docs/adr/0005), and a
+  // visitor has no way to guess the text — so hand it to them.
+  function loadSample() {
+    dictation.stop();
+    setError(null);
+    setNotice(null);
+    setResult(null);
+    setText(SAMPLE_DEBRIEF);
+  }
+
   async function resetDemo() {
     dictation.stop();
     const res = await fetch("/api/reset", { method: "POST" });
     setText("");
+    setNotice(null);
     setResult(null);
     // Deployments with a persistent store restrict reset to the admin token.
     setError(
@@ -125,6 +153,10 @@ export default function DebriefPage() {
       <p className="max-w-prose text-muted">
         Just back from a run? Five minutes here makes the next convoy&apos;s
         checklist better.
+      </p>
+      <p className="max-w-prose text-sm text-muted">
+        This is a public demo of one rehearsed scenario — load the sample
+        debrief to walk it end to end.
       </p>
 
       {/* While listening the box shows the in-flight interim guess and the
@@ -150,6 +182,13 @@ export default function DebriefPage() {
           className={btnPrimary}
         >
           {busy ? "Extracting intel…" : "Extract intel"}
+        </button>
+        <button
+          onClick={loadSample}
+          disabled={busy || dictation.listening}
+          className={btnSecondary}
+        >
+          Use the sample debrief
         </button>
         {dictation.supported && (
           <button
@@ -185,6 +224,15 @@ export default function DebriefPage() {
 
       {error && (
         <div className={noticeError}>{error}</div>
+      )}
+
+      {notice && (
+        <div className={noticeInfo}>
+          <p>{notice}</p>
+          <button onClick={loadSample} className={`${btnSecondary} mt-3`}>
+            Load the sample debrief
+          </button>
+        </div>
       )}
 
       {result && (

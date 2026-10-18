@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getActiveClaims, logDebrief } from "@/lib/store";
-import { callClaude } from "@/lib/anthropic";
+import { LiveLlmUnavailableError, callClaude } from "@/lib/anthropic";
 import { POST } from "@/app/api/extract/route";
 
 vi.mock("@/lib/store", () => ({
@@ -69,6 +69,23 @@ describe("POST /api/extract", () => {
     const body = await res.json();
     expect(body.extracted).toHaveLength(1);
     expect(body.extracted[0].leg).toBe("PL_ENTRY");
+  });
+
+  // Defence in depth: a key revoked while the deployment still has live mode
+  // on must degrade to the demo notice, not a red error (docs/adr/0005 §3.3).
+  it("degrades to the demo-only notice when the key is rejected", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(getActiveClaims).mockResolvedValue([]);
+    vi.mocked(callClaude).mockRejectedValue(
+      new LiveLlmUnavailableError("Claude API 401: authentication_error"),
+    );
+
+    const res = await POST(post("Unrehearsed debrief about an August run."));
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.demo_only).toBe(true);
+    expect(logDebrief).not.toHaveBeenCalled();
   });
 
   it("serves canned demo input without reading the claim store", async () => {

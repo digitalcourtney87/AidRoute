@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getActiveClaims, logAsk } from "@/lib/store";
+import { LiveLlmUnavailableError, callClaude } from "@/lib/anthropic";
+import { getActiveClaims, getState, logAsk } from "@/lib/store";
 import { POST } from "@/app/api/ask/route";
 
 vi.mock("@/lib/store", () => ({
@@ -37,6 +38,22 @@ describe("POST /api/ask", () => {
     expect(res.status).toBe(422);
     const body = await res.json();
     expect(body.error).toMatch(/corridor store is unavailable/i);
+  });
+
+  it("degrades to the demo-only notice when the key is rejected", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(getActiveClaims).mockResolvedValue([]);
+    vi.mocked(getState).mockResolvedValue({ claims: [], rules: [] });
+    vi.mocked(callClaude).mockRejectedValue(
+      new LiveLlmUnavailableError("Claude API 401: authentication_error"),
+    );
+
+    const res = await POST(post("Unrehearsed question about a crossing?"));
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.demo_only).toBe(true);
+    expect(logAsk).not.toHaveBeenCalled();
   });
 
   it("serves a canned chip question without reading the claim store", async () => {

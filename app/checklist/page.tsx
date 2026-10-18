@@ -13,7 +13,7 @@ import {
 import { readApiJson } from "@/lib/read-api-json";
 import type { ChecklistItemType, ChecklistLeg } from "@/lib/checklist";
 import type { Leg } from "@/lib/types";
-import { btnPrimary, btnSecondary, field, noticeError, noticeWarn, sourceChip, tag } from "../ui";
+import { btnPrimary, btnSecondary, field, noticeError, noticeInfo, noticeWarn, sourceChip, tag } from "../ui";
 
 const TYPE_BADGES: Record<ChecklistItemType, string> = {
   do: `${tag} bg-tint-teal text-tint-teal-ink`,
@@ -190,6 +190,24 @@ export default function ChecklistPage() {
                   </div>
                 )}
 
+                {/* Live generation is off and this section has no frozen or
+                    cached version: say so neutrally and point at the path
+                    that does work (docs/adr/0005). */}
+                {state?.status === "done" && state.section.demo_only && (
+                  <div className={`mt-3 ${noticeInfo} print:hidden`}>
+                    <p>
+                      {state.section.message ??
+                        "This section is built from the merged brief."}
+                    </p>
+                    <Link
+                      href="/"
+                      className="mt-2 inline-block text-link underline underline-offset-2"
+                    >
+                      Run the sample debrief first →
+                    </Link>
+                  </div>
+                )}
+
                 {state?.status === "done" && state.section.gap && (
                   <p className={`mt-3 ${noticeWarn}`}>
                     No verified intel for this leg yet. Nothing here is a
@@ -197,38 +215,40 @@ export default function ChecklistPage() {
                   </p>
                 )}
 
-                {state?.status === "done" && !state.section.gap && (
-                  <ul className="mt-3 space-y-3">
-                    {state.section.items.map((item, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          className="peer mt-1 h-5 w-5 shrink-0 accent-action"
-                          aria-label={`done: ${item.text}`}
-                        />
-                        <div className="peer-checked:opacity-60 peer-checked:[&>span:nth-child(2)]:line-through">
-                          <span
-                            className={`mr-2 inline-block align-middle text-[11px] uppercase ${TYPE_BADGES[item.type]}`}
-                          >
-                            {item.type}
-                          </span>
-                          <span>{item.text}</span>
-                          <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
-                            {item.source_ids.map((id) => (
-                              <Link
-                                key={id}
-                                href={`/brief#${id}`}
-                                className={sourceChip}
-                              >
-                                {id}
-                              </Link>
-                            ))}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {state?.status === "done" &&
+                  !state.section.gap &&
+                  !state.section.demo_only && (
+                    <ul className="mt-3 space-y-3">
+                      {state.section.items.map((item, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            className="peer mt-1 h-5 w-5 shrink-0 accent-action"
+                            aria-label={`done: ${item.text}`}
+                          />
+                          <div className="peer-checked:opacity-60 peer-checked:[&>span:nth-child(2)]:line-through">
+                            <span
+                              className={`mr-2 inline-block align-middle text-[11px] uppercase ${TYPE_BADGES[item.type]}`}
+                            >
+                              {item.type}
+                            </span>
+                            <span>{item.text}</span>
+                            <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
+                              {item.source_ids.map((id) => (
+                                <Link
+                                  key={id}
+                                  href={`/brief#${id}`}
+                                  className={sourceChip}
+                                >
+                                  {id}
+                                </Link>
+                              ))}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
               </section>
             );
           })}

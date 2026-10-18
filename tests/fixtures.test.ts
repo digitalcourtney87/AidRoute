@@ -57,6 +57,24 @@ describe("canned extraction vs the seed oracle", () => {
   });
 });
 
+// §2 gap 3: the Supabase store is shared across visitors and visitors cannot
+// reset it, so what a second run of the sample does to the fingerprint
+// decides whether the canned checklist keeps matching for everyone else.
+// This is the fact docs/adr/0005's reset-before-merge is answering.
+describe("re-running the sample on an already-merged store", () => {
+  it("compounds corroborations, so the frozen fingerprint stops matching", () => {
+    const first = mergeClaims(extraction().extracted, getState().claims);
+    const second = mergeClaims(extraction().extracted, first.claims);
+
+    expect(storeFingerprint(first.claims)).toBe(checklist().store_fingerprint);
+    expect(storeFingerprint(second.claims)).not.toBe(
+      checklist().store_fingerprint,
+    );
+    expect(first.claims.find((c) => c.id === "FR-001")?.n_reports).toBe(2);
+    expect(second.claims.find((c) => c.id === "FR-001")?.n_reports).toBe(3);
+  });
+});
+
 describe("canned checklist", () => {
   it("is frozen against exactly the post-demo-merge store state", () => {
     const { claims } = mergeClaims(extraction().extracted, getState().claims);
