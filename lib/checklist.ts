@@ -19,6 +19,11 @@ export interface ChecklistLeg {
   // True when the leg had no active claims or rules, so no model call was
   // made — the UI renders an honest gap, never a guess.
   gap?: boolean;
+  // True when live generation is off and this leg has no canned or cached
+  // section (docs/adr/0005): the UI renders `message` as a neutral notice
+  // pointing back at the rehearsed path, never as an error.
+  demo_only?: boolean;
+  message?: string;
 }
 
 export interface ValidatedChecklistLeg {

@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
-import { callClaude, parseModelJson } from "@/lib/anthropic";
+import {
+  LiveLlmUnavailableError,
+  callClaude,
+  parseModelJson,
+} from "@/lib/anthropic";
 import { getCannedChecklistLeg, storeFingerprint } from "@/lib/canned";
 import { validateChecklistLeg, type ChecklistLeg } from "@/lib/checklist";
 import { LEG_TITLES } from "@/lib/journey-span";
+import { DEMO_ONLY_CHECKLIST_MESSAGE, isLiveLlmEnabled } from "@/lib/live-mode";
 import { CHECKLIST_LEG_PROMPT } from "@/lib/prompts";
 import { publicErrorMessage } from "@/lib/store-errors";
 import { getChecklistLeg, getState, putChecklistLeg } from "@/lib/store";
@@ -14,6 +19,8 @@ import type { StoreState } from "@/lib/store";
 // client fans out one request per leg of the operator's Journey Span so each
 // section renders as it lands. Each leg resolves through canned → cache →
 // honest gap → live model call, so only genuinely new work costs latency.
+// With live mode off (docs/adr/0005) the last step becomes a neutral
+// demo-only section instead, per leg, so the page never shows a red error.
 // Superseded claims are never sent to the model; uncited lines are dropped
 // and logged, never rendered.
 
@@ -46,7 +53,9 @@ export async function POST(req: Request) {
     );
   }
   const legs = requested ?? LEGS_IN_JOURNEY_ORDER;
-  const forceLive = req.headers.get("x-force-live") === "1";
+  const liveEnabled = isLiveLlmEnabled();
+  // Honoured only in live mode — see /api/extract for why.
+  const forceLive = liveEnabled && req.headers.get("x-force-live") === "1";
 
   // The store read lives inside the try: a misconfigured backend must surface
   // as this route's JSON error, not an unhandled rejection (raw Next 500).
@@ -55,7 +64,9 @@ export async function POST(req: Request) {
     const fingerprint = storeFingerprint(state.claims);
 
     const resolved = await Promise.all(
-      legs.map((leg) => resolveLeg(leg, state, fingerprint, forceLive)),
+      legs.map((leg) =>
+        resolveLeg(leg, state, fingerprint, forceLive, liveEnabled),
+      ),
     );
 
     return NextResponse.json({
@@ -79,11 +90,26 @@ export async function POST(req: Request) {
   }
 }
 
+function demoOnlySection(leg: Leg): ResolvedLeg {
+  return {
+    section: {
+      leg,
+      title: LEG_TITLES[leg],
+      items: [],
+      demo_only: true,
+      message: DEMO_ONLY_CHECKLIST_MESSAGE,
+    },
+    dropped: 0,
+    canned: false,
+  };
+}
+
 async function resolveLeg(
   leg: Leg,
   state: StoreState,
   fingerprint: string,
   forceLive: boolean,
+  liveEnabled: boolean,
 ): Promise<ResolvedLeg> {
   if (!forceLive) {
     const canned = getCannedChecklistLeg(state.claims, leg);
@@ -109,6 +135,10 @@ async function resolveLeg(
     };
   }
 
+  // Demo mode: this leg's section would have to be generated, and generation
+  // is off. Say so neutrally rather than failing the page.
+  if (!liveEnabled) return demoOnlySection(leg);
+
   const store = {
     official_rules: rules,
     operator_claims: claims.map(
@@ -130,18 +160,29 @@ async function resolveLeg(
     ...claims.map((c) => c.id),
   ]);
 
-  const raw = await callClaude({
-    system: CHECKLIST_LEG_PROMPT,
-    prompt: [
-      `LEG: ${leg} (${LEG_TITLES[leg]})`,
-      `\nCLAIM STORE FOR THIS LEG:\n${JSON.stringify(store, null, 2)}`,
-      conflictPairs.length > 0
-        ? `\nCONFLICTING PAIRS (each pair must become one "verify" item citing both ids and presenting both accounts):\n${conflictPairs.join("\n")}`
-        : "",
-    ].join("\n"),
-    maxTokens: LEG_MAX_TOKENS,
-    timeoutMs: LEG_TIMEOUT_MS,
-  });
+  let raw: string;
+  try {
+    raw = await callClaude({
+      system: CHECKLIST_LEG_PROMPT,
+      prompt: [
+        `LEG: ${leg} (${LEG_TITLES[leg]})`,
+        `\nCLAIM STORE FOR THIS LEG:\n${JSON.stringify(store, null, 2)}`,
+        conflictPairs.length > 0
+          ? `\nCONFLICTING PAIRS (each pair must become one "verify" item citing both ids and presenting both accounts):\n${conflictPairs.join("\n")}`
+          : "",
+      ].join("\n"),
+      maxTokens: LEG_MAX_TOKENS,
+      timeoutMs: LEG_TIMEOUT_MS,
+    });
+  } catch (err) {
+    // A missing or revoked key degrades this section to the demo notice; the
+    // canned and cached sections around it still render.
+    if (err instanceof LiveLlmUnavailableError) {
+      console.error(`checklist ${leg}: live LLM unavailable —`, err.message);
+      return demoOnlySection(leg);
+    }
+    throw err;
+  }
 
   const { section, dropped } = validateChecklistLeg(
     parseModelJson(raw),

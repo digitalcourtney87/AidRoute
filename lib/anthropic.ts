@@ -6,6 +6,17 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
 const TIMEOUT_MS = 30_000;
 
+// Live calls are unavailable as a matter of configuration, not because the
+// visitor did anything wrong: no key, or a key the API rejects. Routes catch
+// this one type and degrade to the demo-only notice (docs/adr/0005 §3.3), so
+// a stale or revoked key on the deployment can never become a red error.
+export class LiveLlmUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LiveLlmUnavailableError";
+  }
+}
+
 export function stripJsonFences(text: string): string {
   return text
     .trim()
@@ -50,7 +61,7 @@ export async function callClaude({
 }: ClaudeCallOptions): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new Error(
+    throw new LiveLlmUnavailableError(
       "ANTHROPIC_API_KEY is not set — copy .env.example to .env.local and add the key.",
     );
   }
@@ -77,7 +88,14 @@ export async function callClaude({
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Claude API ${res.status}: ${body.slice(0, 300)}`);
+      const detail = `Claude API ${res.status}: ${body.slice(0, 300)}`;
+      // 401/403 mean the key is gone, stale or revoked — the same situation as
+      // no key at all. Anything else (429, 5xx) is transient and stays a plain
+      // error, so the route still invites a retry.
+      if (res.status === 401 || res.status === 403) {
+        throw new LiveLlmUnavailableError(detail);
+      }
+      throw new Error(detail);
     }
 
     const data = (await res.json()) as {
