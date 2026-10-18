@@ -6,6 +6,7 @@
 // stubbed to a plausible value for the same reason: the test must fail
 // because the request was attempted, not because the key was missing.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import {
   getActiveClaims,
   getChecklistLeg,
@@ -69,7 +70,7 @@ function post(route: string, body: unknown, forceLive = false): Request {
   });
 }
 
-let fetchSpy: ReturnType<typeof vi.spyOn>;
+let fetchSpy: MockInstance<typeof globalThis.fetch>;
 
 beforeEach(() => {
   vi.clearAllMocks();
